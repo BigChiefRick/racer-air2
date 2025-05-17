@@ -61,6 +61,28 @@
             transform-origin: center;
             transition: transform 0.3s ease;
         }
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .altitude-meter {
+            height: 6px;
+            background: linear-gradient(90deg, #4ade80 0%, #f59e0b 50%, #ef4444 100%);
+            border-radius: 3px;
+            margin-top: 4px;
+        }
+        .altitude-indicator {
+            height: 12px;
+            width: 2px;
+            background-color: white;
+            position: relative;
+            top: -9px;
+            left: 0%;
+            transform: translateX(-50%);
+        }
     </style>
 </head>
 <body class="gradient-bg min-h-screen text-white">
@@ -135,6 +157,10 @@
                             <span class="opacity-80">Humidity:</span>
                             <span class="font-medium" id="humidityForCalc">- %</span>
                         </div>
+                        <div class="flex items-center justify-between">
+                            <span class="opacity-80">Elevation:</span>
+                            <span class="font-medium" id="elevation">- ft</span>
+                        </div>
                         
                         <div class="border-t border-white border-opacity-20 my-4"></div>
                         
@@ -143,10 +169,14 @@
                                 <span class="opacity-80">Density Altitude:</span>
                                 <span class="text-xl font-bold" id="densityAltitude">- ft</span>
                             </div>
+                            <div class="altitude-meter mt-2">
+                                <div class="altitude-indicator" id="altitudeIndicator"></div>
+                            </div>
+                            <p class="text-xs opacity-60 mt-1" id="densityAltitudeImpact">-</p>
                         </div>
                         
                         <div class="text-xs opacity-60 mt-2">
-                            <p>Calculated using pressure altitude and temperature</p>
+                            <p>Calculated using the formula: H = 44.3308 - 42.2665 × ρ^0.234969</p>
                         </div>
                     </div>
                 </div>
@@ -204,6 +234,7 @@
             const defaultState = document.getElementById('defaultState');
             const autocompleteList = document.getElementById('autocomplete-list');
             const windDirectionIcon = document.getElementById('windDirection');
+            const altitudeIndicator = document.getElementById('altitudeIndicator');
 
             // Variables for autocomplete
             let currentFocus = -1;
@@ -351,10 +382,12 @@
 
                 try {
                     let url;
+                    let coords;
                     
                     // Check if it's coordinates
                     if (/^-?\d{1,3}(?:\.\d+)?\s*,\s*-?\d{1,3}(?:\.\d+)?$/.test(location)) {
                         const [lat, lon] = location.split(',').map(coord => coord.trim());
+                        coords = { lat, lon };
                         url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=imperial&appid=${weatherApiKey}`;
                     } 
                     // Check if it's a zip code (US only)
@@ -379,6 +412,19 @@
                     }
 
                     const data = await response.json();
+                    
+                    // If we don't have coords yet, get them from the response
+                    if (!coords) {
+                        coords = {
+                            lat: data.coord.lat,
+                            lon: data.coord.lon
+                        };
+                    }
+                    
+                    // Get elevation data
+                    const elevationData = await getElevation(coords.lat, coords.lon);
+                    data.elevation = elevationData;
+                    
                     displayWeatherData(data);
                     calculateDensityAltitude(data);
                     
@@ -389,6 +435,37 @@
                     errorMessage.textContent = err.message;
                     error.classList.remove('hidden');
                     defaultState.classList.remove('hidden');
+                }
+            }
+            
+            // Function to get elevation data
+            async function getElevation(lat, lon) {
+                try {
+                    const response = await fetch(`https://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${lon}&limit=1&appid=${weatherApiKey}`);
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.length > 0 && data[0].hasOwnProperty('elevation')) {
+                            // Convert meters to feet
+                            return data[0].elevation * 3.28084;
+                        }
+                    }
+                    
+                    // Fallback to another elevation API if OpenWeatherMap doesn't provide it
+                    const fallbackResponse = await fetch(`https://api.open-elevation.com/api/v1/lookup?locations=${lat},${lon}`);
+                    if (fallbackResponse.ok) {
+                        const fallbackData = await fallbackResponse.json();
+                        if (fallbackData.results && fallbackData.results.length > 0) {
+                            // Convert meters to feet
+                            return fallbackData.results[0].elevation * 3.28084;
+                        }
+                    }
+                    
+                    // If no elevation data available, return 0
+                    return 0;
+                } catch (err) {
+                    console.error('Error fetching elevation:', err);
+                    return 0;
                 }
             }
 
@@ -433,6 +510,10 @@
                 document.getElementById('visibility').textContent = (data.visibility / 1609.34).toFixed(1); // meters to miles
                 document.getElementById('cloudiness').textContent = data.clouds.all;
                 
+                // Elevation data
+                const elevation = data.elevation || 0;
+                document.getElementById('elevation').textContent = `${Math.round(elevation)} ft`;
+                
                 // Data for calculations
                 document.getElementById('tempForCalc').textContent = `${data.main.temp.toFixed(1)} °F`;
                 document.getElementById('pressureForCalc').textContent = `${(data.main.pressure * 0.02953).toFixed(2)} inHg`; // hPa to inHg
@@ -446,29 +527,60 @@
                 return directions[index % 16];
             }
 
-            // Function to calculate density altitude in feet
+            // Function to calculate density altitude in feet using the provided formula
             function calculateDensityAltitude(data) {
-                // Standard atmospheric conditions
-                const STANDARD_TEMP = 59; // °F at sea level
-                const STANDARD_PRESSURE = 29.92; // inHg at sea level
-                const LAPSE_RATE = 0.003566; // °F/ft temperature lapse rate
-                
                 // Get current conditions
-                const currentTemp = data.main.temp; // °F
-                const currentPressure = data.main.pressure * 0.02953; // Convert hPa to inHg
+                const temperatureF = data.main.temp; // °F
+                const pressureInHg = data.main.pressure * 0.02953; // Convert hPa to inHg
+                const humidity = data.main.humidity; // %
+                const elevation = data.elevation || 0; // ft
                 
-                // 1. Calculate pressure altitude
-                const pressureAltitude = (1 - Math.pow(currentPressure / STANDARD_PRESSURE, 0.190284)) * 145366.45;
+                // Convert temperature to Kelvin
+                const temperatureK = (temperatureF - 32) * 5/9 + 273.15;
                 
-                // 2. Calculate density altitude
-                // First calculate standard temperature at pressure altitude
-                const standardTempAtAltitude = STANDARD_TEMP - (LAPSE_RATE * pressureAltitude);
+                // Calculate saturation vapor pressure (Pascals)
+                const es = 6.112 * Math.exp((17.67 * (temperatureK - 273.15)) / (temperatureK - 29.65)) * 100;
                 
-                // Then calculate density altitude
-                const densityAltitude = pressureAltitude + (118.8 * (currentTemp - standardTempAtAltitude));
+                // Calculate actual vapor pressure (Pascals)
+                const ea = (humidity / 100) * es;
+                
+                // Calculate air density (kg/m³)
+                // Using the ideal gas law adjusted for humidity
+                const R = 287.05; // Specific gas constant for dry air (J/(kg·K))
+                const Rv = 461.495; // Specific gas constant for water vapor (J/(kg·K))
+                const pressurePa = pressureInHg * 3386.39; // Convert inHg to Pascals
+                
+                const rho = (pressurePa - ea) / (R * temperatureK) + ea / (Rv * temperatureK);
+                
+                // Calculate density altitude using the provided formula: H = 44.3308 - 42.2665 × ρ^0.234969
+                // Where ρ is air density in kg/m³ and H is in kilometers
+                const densityAltitudeKm = 44.3308 - 42.2665 * Math.pow(rho, 0.234969);
+                
+                // Convert to feet
+                const densityAltitudeFt = densityAltitudeKm * 3280.84;
                 
                 // Display the result rounded to nearest foot
-                document.getElementById('densityAltitude').textContent = Math.round(densityAltitude);
+                document.getElementById('densityAltitude').textContent = `${Math.round(densityAltitudeFt)} ft`;
+                
+                // Calculate the impact of density altitude
+                let impactText = "";
+                const daDiff = densityAltitudeFt - elevation;
+                
+                if (daDiff < 500) {
+                    impactText = "Minimal impact on aircraft/engine performance";
+                } else if (daDiff < 1500) {
+                    impactText = "Slight reduction in aircraft/engine performance";
+                } else if (daDiff < 3000) {
+                    impactText = "Noticeable reduction in aircraft/engine performance";
+                } else {
+                    impactText = "Significant reduction in aircraft/engine performance";
+                }
+                
+                document.getElementById('densityAltitudeImpact').textContent = impactText;
+                
+                // Update the altitude indicator position (0-20,000 ft range)
+                const indicatorPosition = Math.min(Math.max(densityAltitudeFt / 20000 * 100, 0), 100);
+                altitudeIndicator.style.left = `${indicatorPosition}%`;
             }
 
             // Event listeners
@@ -489,11 +601,10 @@
                         fetchWeatherData(location);
                     } else {
                         errorMessage.textContent = 'Please enter a city, zip code, or coordinates';
-                        error.classList.remove('hidden');
                     }
                 }
             });
         });
     </script>
-<p style="border-radius: 8px; text-align: center; font-size: 12px; color: #fff; margin-top: 16px;position: fixed; left: 8px; bottom: 8px; z-index: 10; background: rgba(0, 0, 0, 0.8); padding: 4px 8px;">Made with <img src="https://enzostvs-deepsite.hf.space/logo.svg" alt="DeepSite Logo" style="width: 16px; height: 16px; vertical-align: middle;display:inline-block;margin-right:3px;filter:brightness(0) invert(1);"><a href="https://enzostvs-deepsite.hf.space" style="color: #fff;text-decoration: underline;" target="_blank" >DeepSite</a> - 🧬 <a href="https://enzostvs-deepsite.hf.space?remix=BigChiefRick/racer-air" style="color: #fff;text-decoration: underline;" target="_blank" >Remix</a></p></body>
+<p style="border-radius: 8px; text-align: center; font-size: 12px; color: #fff; margin-top: 16px;position: fixed; left: 8px; bottom: 8px; z-index: 10; background: rgba(0, 0, 0, 0.8); padding: 4px 8px;">Made with <img src="https://enzostvs-deepsite.hf.space/logo.svg" alt="DeepSite Logo" style="width: 16px; height: 16px; vertical-align: middle;display:inline-block;margin-right:3px;filter:brightness(0) invert(1);"><a href="https://enzostvs-deepsite.hf.space" style="color: #fff;text-decoration: underline;" target="_blank" >DeepSite</a> - 🧬 <a href="https://enzostvs-deepsite.hf.space?remix=BigChiefRick/racer-air2" style="color: #fff;text-decoration: underline;" target="_blank" >Remix</a></p></body>
 </html>
