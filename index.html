@@ -1,19 +1,499 @@
-<!doctype html>
-<html>
-	<head>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width" />
-		<title>My static Space</title>
-		<link rel="stylesheet" href="style.css" />
-	</head>
-	<body>
-		<div class="card">
-			<h1>Welcome to your static Space!</h1>
-			<p>You can modify this app directly by editing <i>index.html</i> in the Files and versions tab.</p>
-			<p>
-				Also don't forget to check the
-				<a href="https://huggingface.co/docs/hub/spaces" target="_blank">Spaces documentation</a>.
-			</p>
-		</div>
-	</body>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather & Density Altitude Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        }
+        .weather-card {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        .glow {
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+        .animate-pulse-slow {
+            animation: pulse 4s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.7;
+            }
+        }
+        .autocomplete-items {
+            position: absolute;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-bottom: none;
+            border-top: none;
+            z-index: 99;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: rgba(26, 32, 72, 0.9);
+            border-radius: 0 0 10px 10px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .autocomplete-items div {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .autocomplete-items div:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .autocomplete-active {
+            background-color: rgba(255, 255, 255, 0.2) !important;
+        }
+        .wind-direction {
+            display: inline-block;
+            transform-origin: center;
+            transition: transform 0.3s ease;
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen text-white">
+    <div class="container mx-auto px-4 py-8">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl font-bold mb-2 glow">Weather & Density Altitude Calculator</h1>
+            <p class="text-xl opacity-80">Get real-time weather data by city, zip code, or coordinates</p>
+        </header>
+
+        <div class="max-w-md mx-auto mb-8 relative">
+            <div class="relative">
+                <input type="text" id="locationInput" 
+                       class="w-full px-6 py-4 rounded-full bg-white bg-opacity-20 border border-white border-opacity-30 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50 placeholder-white placeholder-opacity-70" 
+                       placeholder="Enter city, zip code, or lat,lon..." autocomplete="off">
+                <button id="searchBtn" class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-30 hover:bg-opacity-50 text-white p-3 rounded-full transition-all duration-300">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+            <div id="autocomplete-list" class="autocomplete-items hidden"></div>
+        </div>
+
+        <div id="loading" class="text-center py-12 hidden">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white mb-4"></div>
+            <p class="text-xl">Fetching data...</p>
+        </div>
+
+        <div id="error" class="bg-red-500 bg-opacity-30 rounded-lg p-4 mb-8 text-center hidden">
+            <p class="font-medium"><i class="fas fa-exclamation-triangle mr-2"></i> <span id="errorMessage"></span></p>
+        </div>
+
+        <div id="weatherContainer" class="hidden">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Current Weather -->
+                <div class="weather-card p-6">
+                    <div class="flex justify-between items-start mb-6">
+                        <div>
+                            <h2 class="text-2xl font-bold" id="cityName">-</h2>
+                            <p class="opacity-80" id="currentDate">-</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm opacity-80" id="weatherDescription">-</p>
+                            <div class="flex items-center justify-end mt-1">
+                                <img id="weatherIcon" src="" alt="Weather icon" class="w-12 h-12">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                        <div class="text-5xl font-bold" id="currentTemp">-</div>
+                        <div class="text-right">
+                            <p class="text-sm opacity-80">Feels like <span id="feelsLike">-</span></p>
+                            <p class="text-sm opacity-80">Humidity: <span id="humidity">-</span>%</p>
+                            <p class="text-sm opacity-80">Wind: <span id="windSpeed">-</span> mph <span id="windDirection" class="wind-direction"><i class="fas fa-arrow-up"></i></span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Density Altitude Calculator -->
+                <div class="weather-card p-6">
+                    <h2 class="text-2xl font-bold mb-6">Density Altitude Calculator</h2>
+                    
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <span class="opacity-80">Temperature:</span>
+                            <span class="font-medium" id="tempForCalc">- °F</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="opacity-80">Pressure:</span>
+                            <span class="font-medium" id="pressureForCalc">- inHg</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="opacity-80">Humidity:</span>
+                            <span class="font-medium" id="humidityForCalc">- %</span>
+                        </div>
+                        
+                        <div class="border-t border-white border-opacity-20 my-4"></div>
+                        
+                        <div class="bg-white bg-opacity-10 rounded-lg p-4 animate-pulse-slow">
+                            <div class="flex items-center justify-between">
+                                <span class="opacity-80">Density Altitude:</span>
+                                <span class="text-xl font-bold" id="densityAltitude">- ft</span>
+                            </div>
+                        </div>
+                        
+                        <div class="text-xs opacity-60 mt-2">
+                            <p>Calculated using pressure altitude and temperature</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional Weather Info -->
+            <div class="weather-card p-6 mt-6">
+                <h2 class="text-xl font-bold mb-4">Additional Information</h2>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                    <div class="p-3 bg-white bg-opacity-10 rounded-lg">
+                        <p class="text-sm opacity-80">Sunrise</p>
+                        <p class="font-medium" id="sunrise">-</p>
+                    </div>
+                    <div class="p-3 bg-white bg-opacity-10 rounded-lg">
+                        <p class="text-sm opacity-80">Sunset</p>
+                        <p class="font-medium" id="sunset">-</p>
+                    </div>
+                    <div class="p-3 bg-white bg-opacity-10 rounded-lg">
+                        <p class="text-sm opacity-80">Visibility</p>
+                        <p class="font-medium" id="visibility">- miles</p>
+                    </div>
+                    <div class="p-3 bg-white bg-opacity-10 rounded-lg">
+                        <p class="text-sm opacity-80">Cloudiness</p>
+                        <p class="font-medium" id="cloudiness">- %</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="defaultState" class="text-center py-20">
+            <div class="inline-block p-6 bg-white bg-opacity-10 rounded-full mb-6">
+                <i class="fas fa-cloud-sun text-4xl"></i>
+            </div>
+            <h2 class="text-2xl font-bold mb-2">Search for a location</h2>
+            <p class="opacity-80 max-w-md mx-auto">Enter a city name, zip code, or coordinates (lat,lon) above to get current weather data in imperial units</p>
+        </div>
+    </div>
+
+    <footer class="text-center py-6 text-white text-opacity-70 text-sm">
+        <p>Weather data provided by OpenWeatherMap</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // API key
+            const weatherApiKey = 'd9cfb607629829db1ef7247da7751be2';
+            
+            // DOM elements
+            const searchBtn = document.getElementById('searchBtn');
+            const locationInput = document.getElementById('locationInput');
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+            const errorMessage = document.getElementById('errorMessage');
+            const weatherContainer = document.getElementById('weatherContainer');
+            const defaultState = document.getElementById('defaultState');
+            const autocompleteList = document.getElementById('autocomplete-list');
+            const windDirectionIcon = document.getElementById('windDirection');
+
+            // Variables for autocomplete
+            let currentFocus = -1;
+            let autocompleteTimeout;
+            let lastSearchTerm = '';
+
+            // Function to fetch city suggestions
+            async function fetchSuggestions(searchTerm) {
+                if (searchTerm.length < 2) {
+                    autocompleteList.classList.add('hidden');
+                    return;
+                }
+
+                try {
+                    // Check if it's a zip code (US only)
+                    if (/^\d{5}(?:[-\s]\d{4})?$/.test(searchTerm)) {
+                        // Don't show suggestions for zip codes
+                        autocompleteList.classList.add('hidden');
+                        return;
+                    }
+                    
+                    // Check if it's coordinates
+                    if (/^-?\d{1,3}(?:\.\d+)?\s*,\s*-?\d{1,3}(?:\.\d+)?$/.test(searchTerm)) {
+                        // Don't show suggestions for coordinates
+                        autocompleteList.classList.add('hidden');
+                        return;
+                    }
+
+                    // Fetch city suggestions from API
+                    const response = await fetch(`https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(searchTerm)}&limit=5&appid=${weatherApiKey}`);
+                    
+                    let cityMatches = [];
+                    if (response.ok) {
+                        cityMatches = await response.json();
+                    }
+
+                    displaySuggestions(cityMatches, searchTerm);
+                } catch (err) {
+                    console.error('Error fetching suggestions:', err);
+                    autocompleteList.classList.add('hidden');
+                }
+            }
+
+            // Function to display suggestions (cities)
+            function displaySuggestions(cities, searchTerm) {
+                autocompleteList.innerHTML = '';
+                
+                if (cities.length === 0) {
+                    autocompleteList.classList.add('hidden');
+                    return;
+                }
+
+                // Add cities
+                cities.forEach(city => {
+                    const item = document.createElement('div');
+                    let displayText = city.name;
+                    if (city.state) displayText += `, ${city.state}`;
+                    if (city.country) displayText += `, ${city.country}`;
+                    
+                    // Highlight matching part
+                    const regex = new RegExp(searchTerm, 'gi');
+                    const highlightedText = displayText.replace(regex, match => `<strong>${match}</strong>`);
+                    
+                    item.innerHTML = `<i class="fas fa-city mr-2"></i>${highlightedText}`;
+                    item.addEventListener('click', function() {
+                        locationInput.value = `${city.name}, ${city.country}`;
+                        autocompleteList.classList.add('hidden');
+                        fetchWeatherData(`${city.name}, ${city.country}`);
+                    });
+                    autocompleteList.appendChild(item);
+                });
+
+                autocompleteList.classList.remove('hidden');
+            }
+
+            // Event listener for input changes with debounce
+            locationInput.addEventListener('input', function() {
+                const searchTerm = this.value.trim();
+                
+                clearTimeout(autocompleteTimeout);
+                
+                if (searchTerm !== lastSearchTerm && searchTerm.length >= 2) {
+                    autocompleteTimeout = setTimeout(() => {
+                        fetchSuggestions(searchTerm);
+                        lastSearchTerm = searchTerm;
+                    }, 300);
+                } else if (searchTerm.length < 2) {
+                    autocompleteList.classList.add('hidden');
+                }
+            });
+
+            // Keyboard navigation for autocomplete
+            locationInput.addEventListener('keydown', function(e) {
+                const items = autocompleteList.querySelectorAll('div');
+                
+                if (e.keyCode === 40) { // Down arrow
+                    currentFocus++;
+                    setActive(items);
+                } else if (e.keyCode === 38) { // Up arrow
+                    currentFocus--;
+                    setActive(items);
+                } else if (e.keyCode === 13) { // Enter
+                    e.preventDefault();
+                    if (currentFocus > -1) {
+                        if (items) items[currentFocus].click();
+                    } else {
+                        const location = locationInput.value.trim();
+                        if (location) {
+                            fetchWeatherData(location);
+                        }
+                    }
+                }
+            });
+
+            function setActive(items) {
+                if (!items) return;
+                
+                removeActive(items);
+                if (currentFocus >= items.length) currentFocus = 0;
+                if (currentFocus < 0) currentFocus = (items.length - 1);
+                
+                items[currentFocus].classList.add('autocomplete-active');
+            }
+
+            function removeActive(items) {
+                items.forEach(item => {
+                    item.classList.remove('autocomplete-active');
+                });
+            }
+
+            // Close autocomplete when clicking outside
+            document.addEventListener('click', function(e) {
+                if (e.target !== locationInput) {
+                    autocompleteList.classList.add('hidden');
+                }
+            });
+
+            // Function to fetch weather data for a location (city, zip, or coordinates)
+            async function fetchWeatherData(location) {
+                loading.classList.remove('hidden');
+                error.classList.add('hidden');
+                weatherContainer.classList.add('hidden');
+                defaultState.classList.add('hidden');
+                autocompleteList.classList.add('hidden');
+
+                try {
+                    let url;
+                    
+                    // Check if it's coordinates
+                    if (/^-?\d{1,3}(?:\.\d+)?\s*,\s*-?\d{1,3}(?:\.\d+)?$/.test(location)) {
+                        const [lat, lon] = location.split(',').map(coord => coord.trim());
+                        url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=imperial&appid=${weatherApiKey}`;
+                    } 
+                    // Check if it's a zip code (US only)
+                    else if (/^\d{5}(?:[-\s]\d{4})?$/.test(location)) {
+                        url = `https://api.openweathermap.org/data/2.5/weather?zip=${location},US&units=imperial&appid=${weatherApiKey}`;
+                    } 
+                    // Otherwise treat as city name
+                    else {
+                        url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(location)}&units=imperial&appid=${weatherApiKey}`;
+                    }
+
+                    let response = await fetch(url);
+                    
+                    if (!response.ok) {
+                        // Try with encoded location if first attempt fails
+                        const encodedLocation = encodeURIComponent(location);
+                        response = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${encodedLocation}&units=imperial&appid=${weatherApiKey}`);
+                        
+                        if (!response.ok) {
+                            throw new Error('Location not found. Please try another city, zip code, or coordinates.');
+                        }
+                    }
+
+                    const data = await response.json();
+                    displayWeatherData(data);
+                    calculateDensityAltitude(data);
+                    
+                    loading.classList.add('hidden');
+                    weatherContainer.classList.remove('hidden');
+                } catch (err) {
+                    loading.classList.add('hidden');
+                    errorMessage.textContent = err.message;
+                    error.classList.remove('hidden');
+                    defaultState.classList.remove('hidden');
+                }
+            }
+
+            // Function to display weather data (imperial units)
+            function displayWeatherData(data) {
+                // Current date
+                const now = new Date();
+                const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                document.getElementById('currentDate').textContent = now.toLocaleDateString('en-US', options);
+                
+                // Location
+                document.getElementById('cityName').textContent = `${data.name}, ${data.sys.country}`;
+                
+                // Weather description and icon
+                document.getElementById('weatherDescription').textContent = data.weather[0].description;
+                const iconCode = data.weather[0].icon;
+                document.getElementById('weatherIcon').src = `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
+                document.getElementById('weatherIcon').alt = data.weather[0].description;
+                
+                // Temperature (Fahrenheit)
+                document.getElementById('currentTemp').textContent = `${Math.round(data.main.temp)}°F`;
+                document.getElementById('feelsLike').textContent = `${Math.round(data.main.feels_like)}°F`;
+                
+                // Other details
+                document.getElementById('humidity').textContent = data.main.humidity;
+                
+                // Wind speed and direction
+                document.getElementById('windSpeed').textContent = Math.round(data.wind.speed);
+                if (data.wind.deg) {
+                    const direction = getWindDirection(data.wind.deg);
+                    windDirectionIcon.style.transform = `rotate(${data.wind.deg}deg)`;
+                    windDirectionIcon.title = direction;
+                }
+                
+                // Sunrise and sunset
+                const sunriseTime = new Date(data.sys.sunrise * 1000);
+                const sunsetTime = new Date(data.sys.sunset * 1000);
+                document.getElementById('sunrise').textContent = sunriseTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                document.getElementById('sunset').textContent = sunsetTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                
+                // Visibility (convert meters to miles) and cloudiness
+                document.getElementById('visibility').textContent = (data.visibility / 1609.34).toFixed(1); // meters to miles
+                document.getElementById('cloudiness').textContent = data.clouds.all;
+                
+                // Data for calculations
+                document.getElementById('tempForCalc').textContent = `${data.main.temp.toFixed(1)} °F`;
+                document.getElementById('pressureForCalc').textContent = `${(data.main.pressure * 0.02953).toFixed(2)} inHg`; // hPa to inHg
+                document.getElementById('humidityForCalc').textContent = `${data.main.humidity} %`;
+            }
+
+            // Function to get cardinal direction from degrees
+            function getWindDirection(degrees) {
+                const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+                const index = Math.round((degrees % 360) / 22.5);
+                return directions[index % 16];
+            }
+
+            // Function to calculate density altitude in feet
+            function calculateDensityAltitude(data) {
+                // Standard atmospheric conditions
+                const STANDARD_TEMP = 59; // °F at sea level
+                const STANDARD_PRESSURE = 29.92; // inHg at sea level
+                const LAPSE_RATE = 0.003566; // °F/ft temperature lapse rate
+                
+                // Get current conditions
+                const currentTemp = data.main.temp; // °F
+                const currentPressure = data.main.pressure * 0.02953; // Convert hPa to inHg
+                
+                // 1. Calculate pressure altitude
+                const pressureAltitude = (1 - Math.pow(currentPressure / STANDARD_PRESSURE, 0.190284)) * 145366.45;
+                
+                // 2. Calculate density altitude
+                // First calculate standard temperature at pressure altitude
+                const standardTempAtAltitude = STANDARD_TEMP - (LAPSE_RATE * pressureAltitude);
+                
+                // Then calculate density altitude
+                const densityAltitude = pressureAltitude + (118.8 * (currentTemp - standardTempAtAltitude));
+                
+                // Display the result rounded to nearest foot
+                document.getElementById('densityAltitude').textContent = Math.round(densityAltitude);
+            }
+
+            // Event listeners
+            searchBtn.addEventListener('click', function() {
+                const location = locationInput.value.trim();
+                if (location) {
+                    fetchWeatherData(location);
+                } else {
+                    errorMessage.textContent = 'Please enter a city, zip code, or coordinates';
+                    error.classList.remove('hidden');
+                }
+            });
+
+            locationInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    const location = locationInput.value.trim();
+                    if (location) {
+                        fetchWeatherData(location);
+                    } else {
+                        errorMessage.textContent = 'Please enter a city, zip code, or coordinates';
+                        error.classList.remove('hidden');
+                    }
+                }
+            });
+        });
+    </script>
+<p style="border-radius: 8px; text-align: center; font-size: 12px; color: #fff; margin-top: 16px;position: fixed; left: 8px; bottom: 8px; z-index: 10; background: rgba(0, 0, 0, 0.8); padding: 4px 8px;">Made with <img src="https://enzostvs-deepsite.hf.space/logo.svg" alt="DeepSite Logo" style="width: 16px; height: 16px; vertical-align: middle;display:inline-block;margin-right:3px;filter:brightness(0) invert(1);"><a href="https://enzostvs-deepsite.hf.space" style="color: #fff;text-decoration: underline;" target="_blank" >DeepSite</a> - 🧬 <a href="https://enzostvs-deepsite.hf.space?remix=BigChiefRick/racer-air" style="color: #fff;text-decoration: underline;" target="_blank" >Remix</a></p></body>
 </html>

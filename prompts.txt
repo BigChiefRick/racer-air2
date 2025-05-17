@@ -1,0 +1,1 @@
+Ok...elevation is not working...remove that and remove the ability to add tracks.  Also can you can the ability to search via zip code.  and list the wind speed and cardinal direction in the results
