@@ -1,5 +1,5 @@
 ---
-title: BigChiefRicks Air Density Altitude Calculator
+title: BigChiefRick's Air Density Altitude Calculator
 emoji: ⚡
 colorFrom: red
 colorTo: blue
@@ -10,6 +10,7 @@ tags:
 license: apache-2.0
 thumbnail: >-
   https://cdn-uploads.huggingface.co/production/uploads/67672691354f89b579ae1ba1/D8Q3Kq4ZIrJe5ZQR72kvE.png
+short_description: Air Density Altitude Calculator
 ---
 
 Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
