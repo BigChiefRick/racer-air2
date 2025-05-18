@@ -1,12 +1,13 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Weather & Density Altitude Calculator</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Weather &amp; Density Altitude Calculator</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<style>
         .gradient-bg {
             background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
         }
@@ -86,136 +87,121 @@
     </style>
 </head>
 <body class="gradient-bg min-h-screen text-white">
-    <div class="container mx-auto px-4 py-8">
-        <header class="text-center mb-10">
-            <h1 class="text-4xl font-bold mb-2 glow">Weather & Density Altitude Calculator</h1>
-            <p class="text-xl opacity-80">Get real-time weather data by city, zip code, or coordinates</p>
-        </header>
-
-        <div class="max-w-md mx-auto mb-8 relative">
-            <div class="relative">
-                <input type="text" id="locationInput" 
-                       class="w-full px-6 py-4 rounded-full bg-white bg-opacity-20 border border-white border-opacity-30 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50 placeholder-white placeholder-opacity-70" 
-                       placeholder="Enter city, zip code, or lat,lon..." autocomplete="off">
-                <button id="searchBtn" class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-30 hover:bg-opacity-50 text-white p-3 rounded-full transition-all duration-300">
-                    <i class="fas fa-search"></i>
-                </button>
-            </div>
-            <div id="autocomplete-list" class="autocomplete-items hidden"></div>
-        </div>
-
-        <div id="loading" class="text-center py-12 hidden">
-            <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white mb-4"></div>
-            <p class="text-xl">Fetching data...</p>
-        </div>
-
-        <div id="error" class="bg-red-500 bg-opacity-30 rounded-lg p-4 mb-8 text-center hidden">
-            <p class="font-medium"><i class="fas fa-exclamation-triangle mr-2"></i> <span id="errorMessage"></span></p>
-        </div>
-
-        <div id="weatherContainer" class="hidden">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Current Weather -->
-                <div class="weather-card p-6">
-                    <div class="flex justify-between items-start mb-6">
-                        <div>
-                            <h2 class="text-2xl font-bold" id="cityName">-</h2>
-                            <p class="opacity-80" id="currentDate">-</p>
-                        </div>
-                        <div class="text-right">
-                            <p class="text-sm opacity-80" id="weatherDescription">-</p>
-                            <div class="flex items-center justify-end mt-1">
-                                <img id="weatherIcon" src="" alt="Weather icon" class="w-12 h-12">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center justify-between">
-                        <div class="text-5xl font-bold" id="currentTemp">-</div>
-                        <div class="text-right">
-                            <p class="text-sm opacity-80">Feels like <span id="feelsLike">-</span></p>
-                            <p class="text-sm opacity-80">Humidity: <span id="humidity">-</span>%</p>
-                            <p class="text-sm opacity-80">Wind: <span id="windSpeed">-</span> mph <span id="windDirection" class="wind-direction"><i class="fas fa-arrow-up"></i></span></p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Density Altitude Calculator -->
-                <div class="weather-card p-6">
-                    <h2 class="text-2xl font-bold mb-6">Density Altitude Calculator</h2>
-                    
-                    <div class="space-y-4">
-                        <div class="flex items-center justify-between">
-                            <span class="opacity-80">Temperature:</span>
-                            <span class="font-medium" id="tempForCalc">- °F</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span class="opacity-80">Pressure:</span>
-                            <span class="font-medium" id="pressureForCalc">- inHg</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span class="opacity-80">Humidity:</span>
-                            <span class="font-medium" id="humidityForCalc">- %</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span class="opacity-80">Elevation:</span>
-                            <span class="font-medium" id="elevation">- ft</span>
-                        </div>
-                        
-                        <div class="border-t border-white border-opacity-20 my-4"></div>
-                        
-                        <div class="bg-white bg-opacity-10 rounded-lg p-4 animate-pulse-slow">
-                            <div class="flex items-center justify-between">
-                                <span class="opacity-80">Density Altitude:</span>
-                                <span class="text-xl font-bold" id="densityAltitude">- ft</span>
-                            </div>
-                            <div class="altitude-meter mt-2">
-                                <div class="altitude-indicator" id="altitudeIndicator"></div>
-                            </div>
-                            <p class="text-xs opacity-60 mt-1" id="densityAltitudeImpact">-</p>
-                        </div>                     
-                    </div>
-                </div>
-            </div>
-
-            <!-- Additional Weather Info -->
-            <div class="weather-card p-6 mt-6">
-                <h2 class="text-xl font-bold mb-4">Additional Information</h2>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                    <div class="p-3 bg-white bg-opacity-10 rounded-lg">
-                        <p class="text-sm opacity-80">Sunrise</p>
-                        <p class="font-medium" id="sunrise">-</p>
-                    </div>
-                    <div class="p-3 bg-white bg-opacity-10 rounded-lg">
-                        <p class="text-sm opacity-80">Sunset</p>
-                        <p class="font-medium" id="sunset">-</p>
-                    </div>
-                    <div class="p-3 bg-white bg-opacity-10 rounded-lg">
-                        <p class="text-sm opacity-80">Visibility</p>
-                        <p class="font-medium" id="visibility">- miles</p>
-                    </div>
-                    <div class="p-3 bg-white bg-opacity-10 rounded-lg">
-                        <p class="text-sm opacity-80">Cloudiness</p>
-                        <p class="font-medium" id="cloudiness">- %</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div id="defaultState" class="text-center py-20">
-            <div class="inline-block p-6 bg-white bg-opacity-10 rounded-full mb-6">
-                <i class="fas fa-cloud-sun text-4xl"></i>
-            </div>
-            <h2 class="text-2xl font-bold mb-2">Search for a location</h2>
-            <p class="opacity-80 max-w-md mx-auto">Enter a city name, zip code, or coordinates (lat,lon) above to get current weather data in imperial units</p>
-        </div>
-    </div>
-
-    <footer class="text-center py-6 text-white text-opacity-70 text-sm">
-        <p>Weather data provided by OpenWeatherMap</p>
-    </footer>
-
-    <script>
+<div class="container mx-auto px-4 py-8">
+<header class="text-center mb-10">
+<h1 class="text-4xl font-bold mb-2 glow">Weather &amp; Density Altitude Calculator</h1>
+<p class="text-xl opacity-80">Get real-time weather data by city, zip code, or coordinates</p>
+</header>
+<div class="max-w-md mx-auto mb-8 relative">
+<div class="relative">
+<input autocomplete="off" class="w-full px-6 py-4 rounded-full bg-white bg-opacity-20 border border-white border-opacity-30 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50 placeholder-white placeholder-opacity-70" id="locationInput" placeholder="Enter city, zip code, or lat,lon..." type="text"/>
+<button class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-30 hover:bg-opacity-50 text-white p-3 rounded-full transition-all duration-300" id="searchBtn">
+<i class="fas fa-search"></i>
+</button>
+</div>
+<div class="autocomplete-items hidden" id="autocomplete-list"></div>
+</div>
+<div class="text-center py-12 hidden" id="loading">
+<div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white mb-4"></div>
+<p class="text-xl">Fetching data...</p>
+</div>
+<div class="bg-red-500 bg-opacity-30 rounded-lg p-4 mb-8 text-center hidden" id="error">
+<p class="font-medium"><i class="fas fa-exclamation-triangle mr-2"></i> <span id="errorMessage"></span></p>
+</div>
+<div class="hidden" id="weatherContainer">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- Current Weather -->
+<div class="weather-card p-6">
+<div class="flex justify-between items-start mb-6">
+<div>
+<h2 class="text-2xl font-bold" id="cityName">-</h2>
+<p class="opacity-80" id="currentDate">-</p>
+</div>
+<div class="text-right">
+<p class="text-sm opacity-80" id="weatherDescription">-</p>
+<div class="flex items-center justify-end mt-1">
+<img alt="Weather icon" class="w-12 h-12" id="weatherIcon" src=""/>
+</div>
+</div>
+</div>
+<div class="flex items-center justify-between">
+<div class="text-5xl font-bold" id="currentTemp">-</div>
+<div class="text-right">
+<p class="text-sm opacity-80">Feels like <span id="feelsLike">-</span></p>
+<p class="text-sm opacity-80">Humidity: <span id="humidity">-</span>%</p>
+<p class="text-sm opacity-80">Wind: <span id="windSpeed">-</span> mph <span class="wind-direction" id="windDirection"><i class="fas fa-arrow-up"></i></span></p>
+</div>
+</div>
+</div>
+<!-- Density Altitude Calculator -->
+<div class="weather-card p-6">
+<h2 class="text-2xl font-bold mb-6">Density Altitude Calculator</h2>
+<div class="space-y-4">
+<div class="flex items-center justify-between">
+<span class="opacity-80">Temperature:</span>
+<span class="font-medium" id="tempForCalc">- °F</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="opacity-80">Pressure:</span>
+<span class="font-medium" id="pressureForCalc">- inHg</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="opacity-80">Humidity:</span>
+<span class="font-medium" id="humidityForCalc">- %</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="opacity-80">Elevation:</span>
+<span class="font-medium" id="elevation">- ft</span>
+</div>
+<div class="border-t border-white border-opacity-20 my-4"></div>
+<div class="bg-white bg-opacity-10 rounded-lg p-4 animate-pulse-slow">
+<div class="flex items-center justify-between">
+<span class="opacity-80">Density Altitude:</span>
+<span class="text-xl font-bold" id="densityAltitude">- ft</span>
+</div>
+<div class="altitude-meter mt-2">
+<div class="altitude-indicator" id="altitudeIndicator"></div>
+</div>
+<p class="text-xs opacity-60 mt-1" id="densityAltitudeImpact">-</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Additional Weather Info -->
+<div class="weather-card p-6 mt-6">
+<h2 class="text-xl font-bold mb-4">Additional Information</h2>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+<div class="p-3 bg-white bg-opacity-10 rounded-lg">
+<p class="text-sm opacity-80">Sunrise</p>
+<p class="font-medium" id="sunrise">-</p>
+</div>
+<div class="p-3 bg-white bg-opacity-10 rounded-lg">
+<p class="text-sm opacity-80">Sunset</p>
+<p class="font-medium" id="sunset">-</p>
+</div>
+<div class="p-3 bg-white bg-opacity-10 rounded-lg">
+<p class="text-sm opacity-80">Visibility</p>
+<p class="font-medium" id="visibility">- miles</p>
+</div>
+<div class="p-3 bg-white bg-opacity-10 rounded-lg">
+<p class="text-sm opacity-80">Cloudiness</p>
+<p class="font-medium" id="cloudiness">- %</p>
+</div>
+</div>
+</div>
+</div>
+<div class="text-center py-20" id="defaultState">
+<div class="inline-block p-6 bg-white bg-opacity-10 rounded-full mb-6">
+<i class="fas fa-cloud-sun text-4xl"></i>
+</div>
+<h2 class="text-2xl font-bold mb-2">Search for a location</h2>
+<p class="opacity-80 max-w-md mx-auto">Enter a city name, zip code, or coordinates (lat,lon) above to get current weather data in imperial units</p>
+</div>
+</div>
+<footer class="text-center py-6 text-white text-opacity-70 text-sm">
+<p>Weather data provided by OpenWeatherMap</p>
+</footer>
+<script>
         document.addEventListener('DOMContentLoaded', function() {
             // API key
             const weatherApiKey = 'd9cfb607629829db1ef7247da7751be2';
@@ -503,8 +489,8 @@
                 document.getElementById('sunset').textContent = sunsetTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 
                 // Visibility (convert meters to miles) and cloudiness
-                document.getElementById('visibility').textContent = (data.visibility / 1609.34).toFixed(1); // meters to miles
-                document.getElementById('cloudiness').textContent = data.clouds.all;
+                document.getElementById('visibility').textContent = ((data.visibility / 1609.34).toFixed(1)) + " miles"; // meters to miles
+                document.getElementById('cloudiness').textContent = data.clouds.all + " %";
                 
                 // Elevation data
                 const elevation = data.elevation || 0;
@@ -602,5 +588,5 @@
             });
         });
     </script>
-<p style="border-radius: 8px; text-align: center; font-size: 12px; color: #fff; margin-top: 16px;position: fixed; left: 8px; bottom: 8px; z-index: 10; background: rgba(0, 0, 0, 0.8); padding: 4px 8px;">Made with <img src="https://enzostvs-deepsite.hf.space/logo.svg" alt="DeepSite Logo" style="width: 16px; height: 16px; vertical-align: middle;display:inline-block;margin-right:3px;filter:brightness(0) invert(1);"><a href="https://enzostvs-deepsite.hf.space" style="color: #fff;text-decoration: underline;" target="_blank" >DeepSite</a> - 🧬 <a href="https://enzostvs-deepsite.hf.space?remix=BigChiefRick/racer-air2" style="color: #fff;text-decoration: underline;" target="_blank" >Remix</a></p></body>
+<p style="border-radius: 8px; text-align: center; font-size: 12px; color: #fff; margin-top: 16px;position: fixed; left: 8px; bottom: 8px; z-index: 10; background: rgba(0, 0, 0, 0.8); padding: 4px 8px;">Made with <img alt="DeepSite Logo" src="https://enzostvs-deepsite.hf.space/logo.svg" style="width: 16px; height: 16px; vertical-align: middle;display:inline-block;margin-right:3px;filter:brightness(0) invert(1);"/><a href="https://enzostvs-deepsite.hf.space" style="color: #fff;text-decoration: underline;" target="_blank">DeepSite</a> - 🧬 <a href="https://enzostvs-deepsite.hf.space?remix=BigChiefRick/racer-air2" style="color: #fff;text-decoration: underline;" target="_blank">Remix</a></p></body>
 </html>
