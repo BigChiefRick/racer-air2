@@ -574,8 +574,8 @@
                 
                 document.getElementById('densityAltitudeImpact').textContent = impactText;
                 
-                // Update the altitude indicator position (0-20,000 ft range)
-                const indicatorPosition = Math.min(Math.max(densityAltitudeFt / 20000 * 100, 0), 100);
+                // Update the altitude indicator position (0-5,000 ft range)
+                const indicatorPosition = Math.min(Math.max(densityAltitudeFt / 5000 * 100, 0), 100);
                 altitudeIndicator.style.left = `${indicatorPosition}%`;
             }
 
