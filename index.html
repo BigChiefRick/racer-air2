@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Weather & Density Altitude Calculator for Drag Strips</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
-<style>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Advanced Weather & Density Altitude Calculator for Racing</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+    <style>
         .gradient-bg {
             background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
         }
@@ -115,760 +115,864 @@
             background: rgba(255, 255, 255, 0.2);
             font-weight: 500;
         }
+        .air-density-meter {
+            height: 6px;
+            background: linear-gradient(90deg, #ef4444 0%, #f59e0b 50%, #4ade80 100%);
+            border-radius: 3px;
+            margin-top: 4px;
+        }
+        .air-density-indicator {
+            height: 12px;
+            width: 2px;
+            background-color: white;
+            position: relative;
+            top: -9px;
+            left: 0%;
+            transform: translateX(-50%);
+        }
     </style>
 </head>
 <body class="gradient-bg min-h-screen text-white">
 <div class="container mx-auto px-4 py-8">
-<header class="text-center mb-10">
-<h1 class="text-4xl font-bold mb-2 glow">Drag Strip Weather & Density Altitude</h1>
-<p class="text-xl opacity-80">Get real-time weather data for drag racing tracks</p>
-</header>
-<div class="max-w-md mx-auto mb-8 relative">
-<div class="search-type-toggle">
-<button class="active" id="locationSearchBtn">Location Search</button>
-<button id="trackSearchBtn">Track Search</button>
-</div>
-<div class="relative" id="locationSearchContainer">
-<input autocomplete="off" class="w-full px-6 py-4 rounded-full bg-white bg-opacity-20 border border-white border-opacity-30 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50 placeholder-white placeholder-opacity-70" id="locationInput" placeholder="Enter city, zip code, or lat,lon..." type="text"/>
-<button class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-30 hover:bg-opacity-50 text-white p-3 rounded-full transition-all duration-300" id="searchBtn">
-<i class="fas fa-search"></i>
-</button>
-</div>
-<div class="relative hidden" id="trackSearchContainer">
-<input autocomplete="off" class="w-full px-6 py-4 rounded-full bg-white bg-opacity-20 border border-white border-opacity-30 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50 placeholder-white placeholder-opacity-70" id="trackInput" placeholder="Search for a drag strip (e.g. 'Pomona')" type="text"/>
-<button class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-30 hover:bg-opacity-50 text-white p-3 rounded-full transition-all duration-300" id="trackSearchBtnIcon">
-<i class="fas fa-search"></i>
-</button>
-</div>
-<div class="autocomplete-items hidden" id="autocomplete-list"></div>
-<div class="autocomplete-items hidden" id="track-autocomplete-list"></div>
-</div>
-<div class="text-center py-12 hidden" id="loading">
-<div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white mb-4"></div>
-<p class="text-xl">Fetching data...</p>
-</div>
-<div class="bg-red-500 bg-opacity-30 rounded-lg p-4 mb-8 text-center hidden" id="error">
-<p class="font-medium"><i class="fas fa-exclamation-triangle mr-2"></i> <span id="errorMessage"></span></p>
-</div>
-<div class="hidden" id="weatherContainer">
-<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-<!-- Current Weather -->
-<div class="weather-card p-6">
-<div class="flex justify-between items-start mb-6">
-<div>
-<h2 class="text-2xl font-bold" id="cityName">-</h2>
-<p class="opacity-80" id="currentDate">-</p>
-</div>
-<div class="text-right">
-<p class="text-sm opacity-80" id="weatherDescription">-</p>
-<div class="flex items-center justify-end mt-1">
-<img alt="Weather icon" class="w-12 h-12" id="weatherIcon" src=""/>
-</div>
-</div>
-</div>
-<div class="flex items-center justify-between">
-<div class="text-5xl font-bold" id="currentTemp">-</div>
-<div class="text-right">
-<p class="text-sm opacity-80">Feels like <span id="feelsLike">-</span></p>
-<p class="text-sm opacity-80">Humidity: <span id="humidity">-</span>%</p>
-<p class="text-sm opacity-80">Wind: <span id="windSpeed">-</span> mph <span class="wind-direction" id="windDirection"><i class="fas fa-arrow-up"></i></span></p>
-</div>
-</div>
-</div>
-<!-- Density Altitude Calculator -->
-<div class="weather-card p-6">
-<h2 class="text-2xl font-bold mb-6">Density Altitude Calculator <span class="track-badge hidden" id="trackBadge"><i class="fas fa-flag-checkered mr-1"></i> <span id="trackNameBadge">-</span></span></h2>
-<div class="space-y-4">
-<div class="flex items-center justify-between">
-<span class="opacity-80">Temperature:</span>
-<span class="font-medium" id="tempForCalc">- °F</span>
-</div>
-<div class="flex items-center justify-between">
-<span class="opacity-80">Pressure:</span>
-<span class="font-medium" id="pressureForCalc">- inHg</span>
-</div>
-<div class="flex items-center justify-between">
-<span class="opacity-80">Humidity:</span>
-<span class="font-medium" id="humidityForCalc">- %</span>
-</div>
-<div class="flex items-center justify-between">
-<span class="opacity-80">Elevation:</span>
-<span class="font-medium" id="elevation">- ft</span>
-</div>
-<div class="border-t border-white border-opacity-20 my-4"></div>
-<div class="bg-white bg-opacity-10 rounded-lg p-4 animate-pulse-slow">
-<div class="flex items-center justify-between">
-<span class="opacity-80">Density Altitude:</span>
-<span class="text-xl font-bold" id="densityAltitude">- ft</span>
-</div>
-<div class="altitude-meter mt-2">
-<div class="altitude-indicator" id="altitudeIndicator"></div>
-</div>
-<p class="text-xs opacity-60 mt-1" id="densityAltitudeImpact">-</p>
-</div>
-</div>
-</div>
-</div>
-<!-- Additional Weather Info -->
-<div class="weather-card p-6 mt-6">
-<h2 class="text-xl font-bold mb-4">Additional Information</h2>
-<div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-<div class="p-3 bg-white bg-opacity-10 rounded-lg">
-<p class="text-sm opacity-80">Sunrise</p>
-<p class="font-medium" id="sunrise">-</p>
-</div>
-<div class="p-3 bg-white bg-opacity-10 rounded-lg">
-<p class="text-sm opacity-80">Sunset</p>
-<p class="font-medium" id="sunset">-</p>
-</div>
-<div class="p-3 bg-white bg-opacity-10 rounded-lg">
-<p class="text-sm opacity-80">Visibility</p>
-<p class="font-medium" id="visibility">- miles</p>
-</div>
-<div class="p-3 bg-white bg-opacity-10 rounded-lg">
-<p class="text-sm opacity-80">Cloudiness</p>
-<p class="font-medium" id="cloudiness">- %</p>
-</div>
-</div>
-</div>
-</div>
-<div class="text-center py-20" id="defaultState">
-<div class="inline-block p-6 bg-white bg-opacity-10 rounded-full mb-6">
-<i class="fas fa-flag-checkered text-4xl"></i>
-</div>
-<h2 class="text-2xl font-bold mb-2">Search for a drag strip or location</h2>
-<p class="opacity-80 max-w-md mx-auto">Enter a track name or location above to get current weather data and density altitude</p>
-</div>
-</div>
-<footer class="text-center py-6 text-white text-opacity-70 text-sm">
-<p>Weather data provided by OpenWeatherMap | Track data compiled from various sources</p>
-</footer>
-<script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // API key
-            const weatherApiKey = 'd9cfb607629829db1ef7247da7751be2';
+    <header class="text-center mb-10">
+        <h1 class="text-4xl font-bold mb-2 glow">Advanced Racing Weather Calculator</h1>
+        <p class="text-xl opacity-80">Density altitude, air density, and weather data for performance tuning</p>
+    </header>
+    
+    <div class="max-w-md mx-auto mb-8 relative">
+        <div class="search-type-toggle">
+            <button class="active" id="locationSearchBtn">Location Search</button>
+            <button id="trackSearchBtn">Track Search</button>
+        </div>
+        <div class="relative" id="locationSearchContainer">
+            <input autocomplete="off" class="w-full px-6 py-4 rounded-full bg-white bg-opacity-20 border border-white border-opacity-30 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50 placeholder-white placeholder-opacity-70" id="locationInput" placeholder="Enter city, zip code, or lat,lon..." type="text"/>
+            <button class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-30 hover:bg-opacity-50 text-white p-3 rounded-full transition-all duration-300" id="searchBtn">
+                <i class="fas fa-search"></i>
+            </button>
+        </div>
+        <div class="relative hidden" id="trackSearchContainer">
+            <input autocomplete="off" class="w-full px-6 py-4 rounded-full bg-white bg-opacity-20 border border-white border-opacity-30 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50 placeholder-white placeholder-opacity-70" id="trackInput" placeholder="Search for a drag strip (e.g. 'Pomona')" type="text"/>
+            <button class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-30 hover:bg-opacity-50 text-white p-3 rounded-full transition-all duration-300" id="trackSearchBtnIcon">
+                <i class="fas fa-search"></i>
+            </button>
+        </div>
+        <div class="autocomplete-items hidden" id="autocomplete-list"></div>
+        <div class="autocomplete-items hidden" id="track-autocomplete-list"></div>
+    </div>
+    
+    <div class="text-center py-12 hidden" id="loading">
+        <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white mb-4"></div>
+        <p class="text-xl">Fetching data...</p>
+    </div>
+    
+    <div class="bg-red-500 bg-opacity-30 rounded-lg p-4 mb-8 text-center hidden" id="error">
+        <p class="font-medium"><i class="fas fa-exclamation-triangle mr-2"></i> <span id="errorMessage"></span></p>
+    </div>
+    
+    <div class="hidden" id="weatherContainer">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Current Weather -->
+            <div class="weather-card p-6">
+                <div class="flex justify-between items-start mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold" id="cityName">-</h2>
+                        <p class="opacity-80" id="currentDate">-</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm opacity-80" id="weatherDescription">-</p>
+                        <div class="flex items-center justify-end mt-1">
+                            <img alt="Weather icon" class="w-12 h-12" id="weatherIcon" src=""/>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between">
+                    <div class="text-5xl font-bold" id="currentTemp">-</div>
+                    <div class="text-right">
+                        <p class="text-sm opacity-80">Feels like <span id="feelsLike">-</span></p>
+                        <p class="text-sm opacity-80">Humidity: <span id="humidity">-</span>%</p>
+                        <p class="text-sm opacity-80">Wind: <span id="windSpeed">-</span> mph <span class="wind-direction" id="windDirection"><i class="fas fa-arrow-up"></i></span></p>
+                    </div>
+                </div>
+            </div>
             
-            // DOM elements
-            const searchBtn = document.getElementById('searchBtn');
-            const locationInput = document.getElementById('locationInput');
-            const trackInput = document.getElementById('trackInput');
-            const loading = document.getElementById('loading');
-            const error = document.getElementById('error');
-            const errorMessage = document.getElementById('errorMessage');
-            const weatherContainer = document.getElementById('weatherContainer');
-            const defaultState = document.getElementById('defaultState');
-            const autocompleteList = document.getElementById('autocomplete-list');
-            const trackAutocompleteList = document.getElementById('track-autocomplete-list');
-            const windDirectionIcon = document.getElementById('windDirection');
-            const altitudeIndicator = document.getElementById('altitudeIndicator');
-            const trackBadge = document.getElementById('trackBadge');
-            const trackNameBadge = document.getElementById('trackNameBadge');
-            const locationSearchBtn = document.getElementById('locationSearchBtn');
-            const trackSearchBtn = document.getElementById('trackSearchBtn');
-            const locationSearchContainer = document.getElementById('locationSearchContainer');
-            const trackSearchContainer = document.getElementById('trackSearchContainer');
-            const trackSearchBtnIcon = document.getElementById('trackSearchBtnIcon');
+            <!-- Density Altitude Calculator -->
+            <div class="weather-card p-6">
+                <h2 class="text-2xl font-bold mb-6">Density Altitude <span class="track-badge hidden" id="trackBadge"><i class="fas fa-flag-checkered mr-1"></i> <span id="trackNameBadge">-</span></span></h2>
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <span class="opacity-80">Temperature:</span>
+                        <span class="font-medium" id="tempForCalc">- °F</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="opacity-80">Pressure:</span>
+                        <span class="font-medium" id="pressureForCalc">- inHg</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="opacity-80">Humidity:</span>
+                        <span class="font-medium" id="humidityForCalc">- %</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="opacity-80">Elevation:</span>
+                        <span class="font-medium" id="elevation">- ft</span>
+                    </div>
+                    <div class="border-t border-white border-opacity-20 my-4"></div>
+                    <div class="bg-white bg-opacity-10 rounded-lg p-4 animate-pulse-slow">
+                        <div class="flex items-center justify-between">
+                            <span class="opacity-80">Density Altitude:</span>
+                            <span class="text-xl font-bold" id="densityAltitude">- ft</span>
+                        </div>
+                        <div class="altitude-meter mt-2">
+                            <div class="altitude-indicator" id="altitudeIndicator"></div>
+                        </div>
+                        <p class="text-xs opacity-60 mt-1" id="densityAltitudeImpact">-</p>
+                    </div>
+                    <p class="text-xs opacity-60 mt-2 text-center">Using: DA = PA + [120 × (OAT - ISA)]</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Air Density Calculations -->
+        <div class="weather-card p-6 mt-6">
+            <h2 class="text-2xl font-bold mb-6">Air Density Calculations</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-white bg-opacity-10 rounded-lg p-4">
+                    <h3 class="font-bold mb-3">Dry Air (No Water Vapor)</h3>
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="opacity-80">Air Density:</span>
+                            <span class="font-medium" id="dryAirDensity">- kg/m³</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="opacity-80">Relative Density:</span>
+                            <span class="font-medium" id="dryRelativeDensity">- %</span>
+                        </div>
+                        <div class="air-density-meter mt-2">
+                            <div class="air-density-indicator" id="dryAirDensityIndicator"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white bg-opacity-10 rounded-lg p-4">
+                    <h3 class="font-bold mb-3">Humid Air (With Water Vapor)</h3>
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="opacity-80">Air Density:</span>
+                            <span class="font-medium" id="humidAirDensity">- kg/m³</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="opacity-80">Relative Density:</span>
+                            <span class="font-medium" id="humidRelativeDensity">- %</span>
+                        </div>
+                        <div class="air-density-meter mt-2">
+                            <div class="air-density-indicator" id="humidAirDensityIndicator"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <p class="text-xs opacity-60 mt-4 text-center">Standard air density at sea level: 1.225 kg/m³ (15°C, 1013.25 hPa, 0% humidity)</p>
+        </div>
+        
+        <!-- Additional Weather Info -->
+        <div class="weather-card p-6 mt-6">
+            <h2 class="text-xl font-bold mb-4">Additional Information</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                <div class="p-3 bg-white bg-opacity-10 rounded-lg">
+                    <p class="text-sm opacity-80">Sunrise</p>
+                    <p class="font-medium" id="sunrise">-</p>
+                </div>
+                <div class="p-3 bg-white bg-opacity-10 rounded-lg">
+                    <p class="text-sm opacity-80">Sunset</p>
+                    <p class="font-medium" id="sunset">-</p>
+                </div>
+                <div class="p-3 bg-white bg-opacity-10 rounded-lg">
+                    <p class="text-sm opacity-80">Visibility</p>
+                    <p class="font-medium" id="visibility">- miles</p>
+                </div>
+                <div class="p-3 bg-white bg-opacity-10 rounded-lg">
+                    <p class="text-sm opacity-80">Cloudiness</p>
+                    <p class="font-medium" id="cloudiness">- %</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="text-center py-20" id="defaultState">
+        <div class="inline-block p-6 bg-white bg-opacity-10 rounded-full mb-6">
+            <i class="fas fa-flag-checkered text-4xl"></i>
+        </div>
+        <h2 class="text-2xl font-bold mb-2">Search for a drag strip or location</h2>
+        <p class="opacity-80 max-w-md mx-auto">Enter a track name or location above to get current weather data and performance metrics</p>
+    </div>
+</div>
 
-            // Variables for autocomplete
-            let currentFocus = -1;
-            let autocompleteTimeout;
-            let lastSearchTerm = '';
-            let currentSearchType = 'location'; // 'location' or 'track'
+<footer class="text-center py-6 text-white text-opacity-70 text-sm">
+    <p>Weather data provided by OpenWeatherMap | Track data compiled from various sources</p>
+</footer>
 
-            // Database of well-known US drag strips with zip codes and elevations (in feet)
-            const dragStrips = [
-                { name: "Auto Club Dragway", city: "Fontana", state: "CA", zip: "92337", elevation: 1100 },
-                { name: "Bandimere Speedway", city: "Morrison", state: "CO", zip: "80465", elevation: 5820 },
-                { name: "Beech Bend Raceway Park", city: "Bowling Green", state: "KY", zip: "42101", elevation: 500 },
-                { name: "Brainerd International Raceway", city: "Brainerd", state: "MN", zip: "56401", elevation: 1200 },
-                { name: "Bristol Dragway", city: "Bristol", state: "TN", zip: "37620", elevation: 1600 },
-                { name: "Cecil County Dragway", city: "Rising Sun", state: "MD", zip: "21911", elevation: 300 },
-                { name: "Charlotte Motor Speedway", city: "Concord", state: "NC", zip: "28027", elevation: 660 },
-                { name: "Columbus Motor Speedway", city: "Columbus", state: "OH", zip: "43207", elevation: 800 },
-                { name: "Cordova Dragway Park", city: "Cordova", state: "IL", zip: "61242", elevation: 600 },
-                { name: "Douglas Motorsports Park", city: "Douglas", state: "GA", zip: "31533", elevation: 200 },
-                { name: "Dragway 42", city: "West Salem", state: "OH", zip: "44287", elevation: 1000 },
-                { name: "Englishtown Raceway Park", city: "Englishtown", state: "NJ", zip: "07726", elevation: 100 },
-                { name: "Firebird Raceway", city: "Chandler", state: "AZ", zip: "85226", elevation: 1200 },
-                { name: "Gainesville Raceway", city: "Gainesville", state: "FL", zip: "32609", elevation: 150 },
-                { name: "Gateway Motorsports Park", city: "Madison", state: "IL", zip: "62060", elevation: 400 },
-                { name: "Houston Mortorsports Park", city: "Houston", state: "TX", zip: "77044", elevation: 59 },
-                { name: "Indy Raceway Park", city: "Indianapolis", state: "IN", zip: "46234", elevation: 800 },
-                { name: "Las Vegas Motor Speedway", city: "Las Vegas", state: "NV", zip: "89115", elevation: 2000 },
-                { name: "Maple Grove Raceway", city: "Mohnton", state: "PA", zip: "19540", elevation: 400 },
-                { name: "Memphis International Raceway", city: "Millington", state: "TN", zip: "38053", elevation: 300 },
-                { name: "Montgomery Motorsports Park", city: "Montgomery", state: "AL", zip: "36108", elevation: 200 },
-                { name: "National Trail Raceway", city: "Hebron", state: "OH", zip: "43025", elevation: 900 },
-                { name: "New England Dragway", city: "Epping", state: "NH", zip: "03042", elevation: 200 },
-                { name: "No Problem Raceway", city: "Belle Rose", state: "LA", zip: "70341", elevation: 20 },
-                { name: "Palm Beach International Raceway", city: "Jupiter", state: "FL", zip: "33478", elevation: 20 },
-                { name: "Pomona Raceway", city: "Pomona", state: "CA", zip: "91768", elevation: 850 },
-                { name: "Rockingham Dragway", city: "Rockingham", state: "NC", zip: "28379", elevation: 200 },
-                { name: "Sacramento Raceway Park", city: "Sacramento", state: "CA", zip: "95827", elevation: 30 },
-                { name: "Seattle International Raceway", city: "Kent", state: "WA", zip: "98042", elevation: 300 },
-                { name: "South Georgia Motorsports Park", city: "Cecil", state: "GA", zip: "31627", elevation: 200 },
-                { name: "Texas Motorplex", city: "Ennis", state: "TX", zip: "75119", elevation: 500 },
-                { name: "Thunder Valley Raceway Park", city: "Bristol", state: "TN", zip: "37620", elevation: 1600 },
-                { name: "Tucson Dragway", city: "Tucson", state: "AZ", zip: "85706", elevation: 2500 },
-                { name: "Virginia Motorsports Park", city: "Petersburg", state: "VA", zip: "23803", elevation: 100 },
-                { name: "Woodburn Dragstrip", city: "Woodburn", state: "OR", zip: "97071", elevation: 200 },
-                { name: "ZMax Dragway", city: "Concord", state: "NC", zip: "28027", elevation: 660 },
-                { name: "Texas Motorplex", city: "Ennis", state: "TX", zip: "75119", elevation: 500 },
-                { name: "Houston Motorsports Park", city: "Houston", state: "TX", zip: "77044", elevation: 59 },
-                { name: "Little River Dragway", city: "Holland", state: "TX", zip: "76534", elevation: 600 },
-                { name: "Xtreme Raceway Park", city: "Ferris", state: "TX", zip: "75125", elevation: 500 },
-                { name: "Yellow Belly Dragstrip", city: "Grand Prairie", state: "TX", zip: "75050", elevation: 500 },
-                { name: "Amarillo Dragway", city: "Amarillo", state: "TX", zip: "79118", elevation: 3600 },
-                { name: "Big Country Raceway", city: "Abilene", state: "TX", zip: "79601", elevation: 1800 },
-                { name: "Cedar Creek Dragway", city: "Kemp", state: "TX", zip: "75143", elevation: 400 },
-                { name: "Caprock Motorplex", city: "Penwell", state: "TX", zip: "79742", elevation: 3000 },
-                { name: "Evadale Raceway", city: "Evadale", state: "TX", zip: "77615", elevation: 100 },
-                { name: "Lubbock Dragway", city: "Lubbock", state: "TX", zip: "79403", elevation: 3200 },
-                { name: "Lone Star Motorsports Park", city: "Sealy", state: "TX", zip: "77474", elevation: 200 },
-                { name: "North Star Dragway", city: "Denton", state: "TX", zip: "76207", elevation: 650 },
-                { name: "Paris Dragstrip", city: "Paris", state: "TX", zip: "75460", elevation: 600 },
-               { name: "Pine Valley Raceway", city: "Lufkin", state: "TX", zip: "75901", elevation: 300 },
-               { name: "Redline Raceway", city: "Caddo Mills", state: "TX", zip: "75135", elevation: 550 },
-               { name: "San Antonio Raceway", city: "Marion", state: "TX", zip: "78124", elevation: 650 },
-               { name: "Wichita Raceway Park", city: "Wichita Falls", state: "TX", zip: "76310", elevation: 1000}
-            ];
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // API key
+        const weatherApiKey = 'd9cfb607629829db1ef7247da7751be2';
+        
+        // DOM elements
+        const searchBtn = document.getElementById('searchBtn');
+        const locationInput = document.getElementById('locationInput');
+        const trackInput = document.getElementById('trackInput');
+        const loading = document.getElementById('loading');
+        const error = document.getElementById('error');
+        const errorMessage = document.getElementById('errorMessage');
+        const weatherContainer = document.getElementById('weatherContainer');
+        const defaultState = document.getElementById('defaultState');
+        const autocompleteList = document.getElementById('autocomplete-list');
+        const trackAutocompleteList = document.getElementById('track-autocomplete-list');
+        const windDirectionIcon = document.getElementById('windDirection');
+        const altitudeIndicator = document.getElementById('altitudeIndicator');
+        const trackBadge = document.getElementById('trackBadge');
+        const trackNameBadge = document.getElementById('trackNameBadge');
+        const locationSearchBtn = document.getElementById('locationSearchBtn');
+        const trackSearchBtn = document.getElementById('trackSearchBtn');
+        const locationSearchContainer = document.getElementById('locationSearchContainer');
+        const trackSearchContainer = document.getElementById('trackSearchContainer');
+        const trackSearchBtnIcon = document.getElementById('trackSearchBtnIcon');
 
-            // Toggle between location and track search
-            locationSearchBtn.addEventListener('click', function() {
-                currentSearchType = 'location';
-                locationSearchBtn.classList.add('active');
-                trackSearchBtn.classList.remove('active');
-                locationSearchContainer.classList.remove('hidden');
-                trackSearchContainer.classList.add('hidden');
-            });
+        // Variables for autocomplete
+        let currentFocus = -1;
+        let autocompleteTimeout;
+        let lastSearchTerm = '';
+        let currentSearchType = 'location'; // 'location' or 'track'
+        let currentWeatherData = null;
 
-            trackSearchBtn.addEventListener('click', function() {
-                currentSearchType = 'track';
-                trackSearchBtn.classList.add('active');
-                locationSearchBtn.classList.remove('active');
-                trackSearchContainer.classList.remove('hidden');
-                locationSearchContainer.classList.add('hidden');
-            });
+        // Database of well-known US drag strips with zip codes and elevations (in feet)
+        const dragStrips = [
+            { name: "Auto Club Dragway", city: "Fontana", state: "CA", zip: "92337", elevation: 1100 },
+            { name: "Bandimere Speedway", city: "Morrison", state: "CO", zip: "80465", elevation: 5820 },
+            { name: "Beech Bend Raceway Park", city: "Bowling Green", state: "KY", zip: "42101", elevation: 500 },
+            { name: "Brainerd International Raceway", city: "Brainerd", state: "MN", zip: "56401", elevation: 1200 },
+            { name: "Bristol Dragway", city: "Bristol", state: "TN", zip: "37620", elevation: 1600 },
+            { name: "Cecil County Dragway", city: "Rising Sun", state: "MD", zip: "21911", elevation: 300 },
+            { name: "Charlotte Motor Speedway", city: "Concord", state: "NC", zip: "28027", elevation: 660 },
+            { name: "Columbus Motor Speedway", city: "Columbus", state: "OH", zip: "43207", elevation: 800 },
+            { name: "Cordova Dragway Park", city: "Cordova", state: "IL", zip: "61242", elevation: 600 },
+            { name: "Douglas Motorsports Park", city: "Douglas", state: "GA", zip: "31533", elevation: 200 },
+            { name: "Dragway 42", city: "West Salem", state: "OH", zip: "44287", elevation: 1000 },
+            { name: "Englishtown Raceway Park", city: "Englishtown", state: "NJ", zip: "07726", elevation: 100 },
+            { name: "Firebird Raceway", city: "Chandler", state: "AZ", zip: "85226", elevation: 1200 },
+            { name: "Gainesville Raceway", city: "Gainesville", state: "FL", zip: "32609", elevation: 150 },
+            { name: "Gateway Motorsports Park", city: "Madison", state: "IL", zip: "62060", elevation: 400 },
+            { name: "Houston Mortorsports Park", city: "Houston", state: "TX", zip: "77044", elevation: 59 },
+            { name: "Indy Raceway Park", city: "Indianapolis", state: "IN", zip: "46234", elevation: 800 },
+            { name: "Las Vegas Motor Speedway", city: "Las Vegas", state: "NV", zip: "89115", elevation: 2000 },
+            { name: "Maple Grove Raceway", city: "Mohnton", state: "PA", zip: "19540", elevation: 400 },
+            { name: "Memphis International Raceway", city: "Millington", state: "TN", zip: "38053", elevation: 300 },
+            { name: "Montgomery Motorsports Park", city: "Montgomery", state: "AL", zip: "36108", elevation: 200 },
+            { name: "National Trail Raceway", city: "Hebron", state: "OH", zip: "43025", elevation: 900 },
+            { name: "New England Dragway", city: "Epping", state: "NH", zip: "03042", elevation: 200 },
+            { name: "No Problem Raceway", city: "Belle Rose", state: "LA", zip: "70341", elevation: 20 },
+            { name: "Palm Beach International Raceway", city: "Jupiter", state: "FL", zip: "33478", elevation: 20 },
+            { name: "Pomona Raceway", city: "Pomona", state: "CA", zip: "91768", elevation: 850 },
+            { name: "Rockingham Dragway", city: "Rockingham", state: "NC", zip: "28379", elevation: 200 },
+            { name: "Sacramento Raceway Park", city: "Sacramento", state: "CA", zip: "95827", elevation: 30 },
+            { name: "Seattle International Raceway", city: "Kent", state: "WA", zip: "98042", elevation: 300 },
+            { name: "South Georgia Motorsports Park", city: "Cecil", state: "GA", zip: "31627", elevation: 200 },
+            { name: "Texas Motorplex", city: "Ennis", state: "TX", zip: "75119", elevation: 500 },
+            { name: "Thunder Valley Raceway Park", city: "Bristol", state: "TN", zip: "37620", elevation: 1600 },
+            { name: "Tucson Dragway", city: "Tucson", state: "AZ", zip: "85706", elevation: 2500 },
+            { name: "Virginia Motorsports Park", city: "Petersburg", state: "VA", zip: "23803", elevation: 100 },
+            { name: "Woodburn Dragstrip", city: "Woodburn", state: "OR", zip: "97071", elevation: 200 },
+            { name: "ZMax Dragway", city: "Concord", state: "NC", zip: "28027", elevation: 660 },
+            { name: "Texas Motorplex", city: "Ennis", state: "TX", zip: "75119", elevation: 500 },
+            { name: "Houston Motorsports Park", city: "Houton", state: "TX", zip: "77044", elevation: 59 },
+            { name: "Little River Dragway", city: "Holland", state: "TX", zip: "76534", elevation: 600 },
+            { name: "Xtreme Raceway Park", city: "Ferris", state: "TX", zip: "75125", elevation: 500 },
+            { name: "Yellow Belly Dragstrip", city: "Grand Prairie", state: "TX", zip: "75050", elevation: 500 },
+            { name: "Amarillo Dragway", city: "Amarillo", state: "TX", zip: "79118", elevation: 3600 },
+            { name: "Big Country Raceway", city: "Abilene", state: "TX", zip: "79601", elevation: 1800 },
+            { name: "Cedar Creek Dragway", city: "Kemp", state: "TX", zip: "75143", elevation: 400 },
+            { name: "Caprock Motorplex", city: "Penwell", state: "TX", zip: "79742", elevation: 3000 },
+            { name: "Evadale Raceway", city: "Evadale", state: "TX", zip: "77615", elevation: 100 },
+            { name: "Lubbock Dragway", city: "Lubbock", state: "TX", zip: "79403", elevation: 3200 },
+            { name: "Lone Star Motorsports Park", city: "Sealy", state: "TX", zip: "77474", elevation: 200 },
+            { name: "North Star Dragway", city: "Denton", state: "TX", zip: "76207", elevation: 650 },
+            { name: "Paris Dragstrip", city: "Paris", state: "TX", zip: "75460", elevation: 600 },
+           { name: "Pine Valley Raceway", city: "Lufkin", state: "TX", zip: "75901", elevation: 300 },
+           { name: "Redline Raceway", city: "Caddo Mills", state: "TX", zip: "75135", elevation: 550 },
+           { name: "San Antonio Raceway", city: "Marion", state: "TX", zip: "78124", elevation: 650 },
+           { name: "Wichita Raceway Park", city: "Wichita Falls", state: "TX", zip: "76310", elevation: 1000}
+        ];
 
-            // Function to fetch city suggestions
-            async function fetchSuggestions(searchTerm) {
-                if (searchTerm.length < 2) {
-                    autocompleteList.classList.add('hidden');
-                    return;
-                }
+        // Toggle between location and track search
+        locationSearchBtn.addEventListener('click', function() {
+            currentSearchType = 'location';
+            locationSearchBtn.classList.add('active');
+            trackSearchBtn.classList.remove('active');
+            locationSearchContainer.classList.remove('hidden');
+            trackSearchContainer.classList.add('hidden');
+        });
 
-                try {
-                    // Check if it's a zip code (US only)
-                    if (/^\d{5}(?:[-\s]\d{4})?$/.test(searchTerm)) {
-                        // Don't show suggestions for zip codes
-                        autocompleteList.classList.add('hidden');
-                        return;
-                    }
-                    
-                    // Check if it's coordinates
-                    if (/^-?\d{1,3}(?:\.\d+)?\s*,\s*-?\d{1,3}(?:\.\d+)?$/.test(searchTerm)) {
-                        // Don't show suggestions for coordinates
-                        autocompleteList.classList.add('hidden');
-                        return;
-                    }
+        trackSearchBtn.addEventListener('click', function() {
+            currentSearchType = 'track';
+            trackSearchBtn.classList.add('active');
+            locationSearchBtn.classList.remove('active');
+            trackSearchContainer.classList.remove('hidden');
+            locationSearchContainer.classList.add('hidden');
+        });
 
-                    // Fetch city suggestions from API
-                    const response = await fetch(`https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(searchTerm)}&limit=5&appid=${weatherApiKey}`);
-                    
-                    let cityMatches = [];
-                    if (response.ok) {
-                        cityMatches = await response.json();
-                    }
-
-                    displaySuggestions(cityMatches, searchTerm);
-                } catch (err) {
-                    console.error('Error fetching suggestions:', err);
-                    autocompleteList.classList.add('hidden');
-                }
+        // Function to fetch city suggestions
+        async function fetchSuggestions(searchTerm) {
+            if (searchTerm.length < 2) {
+                autocompleteList.classList.add('hidden');
+                return;
             }
 
-            // Function to display track suggestions
-            function fetchTrackSuggestions(searchTerm) {
-                if (searchTerm.length < 2) {
-                    trackAutocompleteList.classList.add('hidden');
+            try {
+                // Check if it's a zip code (US only)
+                if (/^\d{5}(?:[-\s]\d{4})?$/.test(searchTerm)) {
+                    // Don't show suggestions for zip codes
+                    autocompleteList.classList.add('hidden');
+                    return;
+                }
+                
+                // Check if it's coordinates
+                if (/^-?\d{1,3}(?:\.\d+)?\s*,\s*-?\d{1,3}(?:\.\d+)?$/.test(searchTerm)) {
+                    // Don't show suggestions for coordinates
+                    autocompleteList.classList.add('hidden');
                     return;
                 }
 
+                // Fetch city suggestions from API
+                const response = await fetch(`https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(searchTerm)}&limit=5&appid=${weatherApiKey}`);
+                
+                let cityMatches = [];
+                if (response.ok) {
+                    cityMatches = await response.json();
+                }
+
+                displaySuggestions(cityMatches, searchTerm);
+            } catch (err) {
+                console.error('Error fetching suggestions:', err);
+                autocompleteList.classList.add('hidden');
+            }
+        }
+
+        // Function to display track suggestions
+        function fetchTrackSuggestions(searchTerm) {
+            if (searchTerm.length < 2) {
+                trackAutocompleteList.classList.add('hidden');
+                return;
+            }
+
+            const matches = dragStrips.filter(track => 
+                track.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                track.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                track.state.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+
+            displayTrackSuggestions(matches, searchTerm);
+        }
+
+        // Function to display suggestions (cities)
+        function displaySuggestions(cities, searchTerm) {
+            autocompleteList.innerHTML = '';
+            
+            if ( cities.length === 0) {
+                autocompleteList.classList.add('hidden');
+                return;
+            }
+
+            // Add cities
+            cities.forEach(city => {
+                const item = document.createElement('div');
+                let displayText = city.name;
+                if (city.state) displayText += `, ${city.state}`;
+                if (city.country) displayText += `, ${city.country}`;
+                
+                // Highlight matching part
+                const regex = new RegExp(searchTerm, 'gi');
+                const highlightedText = displayText.replace(regex, match => `<strong>${match}</strong>`);
+                
+                item.innerHTML = `<i class="fas fa-city mr-2"></i>${highlightedText}`;
+                item.addEventListener('click', function() {
+                    locationInput.value = `${city.name}, ${city.country}`;
+                    autocompleteList.classList.add('hidden');
+                    fetchWeatherData(`${city.name}, ${city.country}`);
+                });
+                autocompleteList.appendChild(item);
+            });
+
+            autocompleteList.classList.remove('hidden');
+        }
+
+        // Function to display track suggestions
+        function displayTrackSuggestions(tracks, searchTerm) {
+            trackAutocompleteList.innerHTML = '';
+            
+            if (tracks.length === 0) {
+                trackAutocompleteList.classList.add('hidden');
+                return;
+            }
+
+            // Add tracks
+            tracks.forEach(track => {
+                const item = document.createElement('div');
+                let displayText = `${track.name} (${track.city}, ${track.state})`;
+                
+                // Highlight matching part
+                const regex = new RegExp(searchTerm, 'gi');
+                const highlightedText = displayText.replace(regex, match => `<strong>${match}</strong>`);
+                
+                item.innerHTML = `<i class="fas fa-flag-checkered mr-2"></i>${highlightedText}`;
+                item.addEventListener('click', function() {
+                    trackInput.value = track.name;
+                    trackAutocompleteList.classList.add('hidden');
+                    fetchWeatherForTrack(track);
+                });
+                trackAutocompleteList.appendChild(item);
+            });
+
+            trackAutocompleteList.classList.remove('hidden');
+        }
+
+        // Event listener for track input changes with debounce
+        trackInput.addEventListener('input', function() {
+            const searchTerm = this.value.trim();
+            
+            clearTimeout(autocompleteTimeout);
+            
+            if (searchTerm !== lastSearchTerm && searchTerm.length >= 2) {
+                autocompleteTimeout = setTimeout(() => {
+                    fetchTrackSuggestions(searchTerm);
+                    lastSearchTerm = searchTerm;
+                }, 300);
+            } else if (searchTerm.length < 2) {
+                trackAutocompleteList.classList.add('hidden');
+            }
+        });
+
+        // Keyboard navigation for track autocomplete
+        trackInput.addEventListener('keydown', function(e) {
+            const items = trackAutocompleteList.querySelectorAll('div');
+            
+            if (e.keyCode === 40) { // Down arrow
+                currentFocus++;
+                setActive(items);
+            } else if (e.keyCode === 38) { // Up arrow
+                currentFocus--;
+                setActive(items);
+            } else if (e.keyCode === 13) { // Enter
+                e.preventDefault();
+                if (currentFocus > -1) {
+                    if (items) items[currentFocus].click();
+                } else {
+                    const searchTerm = trackInput.value.trim();
+                    if (searchTerm) {
+                        const matches = dragStrips.filter(track => 
+                            track.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                            track.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            track.state.toLowerCase().includes(searchTerm.toLowerCase())
+                        );
+                        if (matches.length > 0) {
+                            fetchWeatherForTrack(matches[0]);
+                        } else {
+                            errorMessage.textContent = 'Track not found. Please try another name.';
+                            error.classList.remove('hidden');
+                        }
+                    }
+                }
+            }
+        });
+
+        // Event listener for input changes with debounce
+        locationInput.addEventListener('input', function() {
+            const searchTerm = this.value.trim();
+            
+            clearTimeout(autocompleteTimeout);
+            
+            if (searchTerm !== lastSearchTerm && searchTerm.length >= 2) {
+                autocompleteTimeout = setTimeout(() => {
+                    fetchSuggestions(searchTerm);
+                    lastSearchTerm = searchTerm;
+                }, 300);
+            } else if (searchTerm.length < 2) {
+                autocompleteList.classList.add('hidden');
+            }
+        });
+
+        // Keyboard navigation for autocomplete
+        locationInput.addEventListener('keydown', function(e) {
+            const items = autocompleteList.querySelectorAll('div');
+            
+            if (e.keyCode === 40) { // Down arrow
+                currentFocus++;
+                setActive(items);
+            } else if (e.keyCode === 38) { // Up arrow
+                currentFocus--;
+                setActive(items);
+            } else if (e.keyCode === 13) { // Enter
+                e.preventDefault();
+                if (currentFocus > -1) {
+                    if (items) items[currentFocus].click();
+                } else {
+                    const location = locationInput.value.trim();
+                    if (location) {
+                        fetchWeatherData(location);
+                    }
+                }
+            }
+        });
+
+        function setActive(items) {
+            if (!items) return;
+            
+            removeActive(items);
+            if (currentFocus >= items.length) currentFocus = 0;
+            if (currentFocus < 0) currentFocus = (items.length - 1);
+            
+            items[currentFocus].classList.add('autocomplete-active');
+        }
+
+        function removeActive(items) {
+            items.forEach(item => {
+                item.classList.remove('autocomplete-active');
+            });
+        }
+
+        // Close autocomplete when clicking outside
+        document.addEventListener('click', function(e) {
+            if (e.target !== locationInput &&  e.target !== trackInput) {
+                autocompleteList.classList.add('hidden');
+                trackAutocompleteList.classList.add('hidden');
+            }
+        });
+
+        // Function to fetch weather data for a track
+        async function fetchWeatherForTrack(track) {
+            loading.classList.remove('hidden');
+            error.classList.add('hidden');
+            weatherContainer.classList.add('hidden');
+            defaultState.classList.add('hidden');
+            trackAutocompleteList.classList.add('hidden');
+
+            try {
+                // Use the track's zip code to fetch weather
+                const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?zip=${track.zip},US&units=imperial&appid=${weatherApiKey}`);
+                
+                if (!response.ok) {
+                    throw new Error('Weather data not available for this track. Please try another location.');
+                }
+
+                const data = await response.json();
+                
+                // Add elevation from our track database
+                data.elevation = track.elevation;
+                
+                currentWeatherData = data;
+                displayWeatherData(data);
+                calculateDensityAltitude(data);
+                calculateAirDensity(data);
+                
+                // Show track badge
+                trackBadge.classList.remove('hidden');
+                trackNameBadge.textContent = track.name;
+                
+                loading.classList.add('hidden');
+                weatherContainer.classList.remove('hidden');
+            } catch (err) {
+                loading.classList.add('hidden');
+                errorMessage.textContent = err.message;
+                error.classList.remove('hidden');
+                defaultState.classList.remove('hidden');
+            }
+        }
+
+        // Function to fetch weather data for a location (city, zip, or coordinates)
+        async function fetchWeatherData(location) {
+            loading.classList.remove('hidden');
+            error.classList.add('hidden');
+            weatherContainer.classList.add('hidden');
+            defaultState.classList.add('hidden');
+            autocompleteList.classList.add('hidden');
+            trackBadge.classList.add('hidden');
+
+            try {
+                let url;
+                let coords;
+                
+                // Check if it's coordinates
+                if (/^-?\d{1,3}(?:\.\d+)?\s*,\s*-?\d{1,3}(?:\.\d+)?$/.test(location)) {
+                    const [lat, lon] = location.split(',').map(coord => coord.trim());
+                    coords = { lat, lon };
+                    url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=imperial&appid=${weatherApiKey}`;
+                } 
+                // Check if it's a zip code (US only)
+                else if (/^\d{5}(?:[-\s]\d{4})?$/.test(location)) {
+                    url = `https://api.openweathermap.org/data/2.5/weather?zip=${location},US&units=imperial&appid=${weatherApiKey}`;
+                } 
+                // Otherwise treat as city name
+                else {
+                    url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(location)}&units=imperial&appid=${weatherApiKey}`;
+                }
+
+                let response = await fetch(url);
+                
+                if (!response.ok) {
+                    // Try with encoded location if first attempt fails
+                    const encodedLocation = encodeURIComponent(location);
+                    response = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${encodedLocation}&units=imperial&appid=${weatherApiKey}`);
+                    
+                    if (!response.ok) {
+                        throw new Error('Location not found. Please try another city, zip code, or coordinates.');
+                    }
+                }
+
+                const data = await response.json();
+                
+                // If we don't have coords yet, get them from the response
+                if (!coords) {
+                    coords = {
+                        lat: data.coord.lat,
+                        lon: data.coord.lon
+                    };
+                }
+                
+                // Get elevation data
+                const elevationData = await getElevation(coords.lat, coords.lon);
+                data.elevation = elevationData;
+                
+                currentWeatherData = data;
+                displayWeatherData(data);
+                calculateDensityAltitude(data);
+                calculateAirDensity(data);
+                
+                loading.classList.add('hidden');
+                weatherContainer.classList.remove('hidden');
+            } catch (err) {
+                loading.classList.add('hidden');
+                errorMessage.textContent = err.message;
+                error.classList.remove('hidden');
+                defaultState.classList.remove('hidden');
+            }
+        }
+        
+        // Function to get elevation data
+        async function getElevation(lat, lon) {
+            try {
+                const response = await fetch(`https://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${lon}&limit=1&appid=${weatherApiKey}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.length > 0 && data[0].hasOwnProperty('elevation')) {
+                        // Convert meters to feet
+                        return data[0].elevation * 3.28084;
+                    }
+                }
+                
+                // Fallback to another elevation API if OpenWeatherMap doesn't provide it
+                const fallbackResponse = await fetch(`https://api.open-elevation.com/api/v1/lookup?locations=${lat},${lon}`);
+                if (fallbackResponse.ok) {
+                    const fallbackData = await fallbackResponse.json();
+                    if (fallbackData.results && fallbackData.results.length > 0) {
+                        // Convert meters to feet
+                        return fallbackData.results[0].elevation * 3.28084;
+                    }
+                }
+                
+                // If no elevation data available, return 0
+                return 0;
+            } catch (err) {
+                console.error('Error fetching elevation:', err);
+                return 0;
+            }
+        }
+
+        // Function to display weather data (imperial units)
+        function displayWeatherData(data) {
+            // Current date
+            const now = new Date();
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('currentDate').textContent = now.toLocaleDateString('en-US', options);
+            
+            // Location
+            document.getElementById('cityName').textContent = `${data.name}, ${data.sys.country}`;
+            
+            // Weather description and icon
+            document.getElementById('weatherDescription').textContent = data.weather[0].description;
+            const iconCode = data.weather[0].icon;
+            document.getElementById('weatherIcon').src = `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
+            document.getElementById('weatherIcon').alt = data.weather[0].description;
+            
+            // Temperature (Fahrenheit)
+            document.getElementById('currentTemp').textContent = `${Math.round(data.main.temp)}°F`;
+            document.getElementById('feelsLike').textContent = `${Math.round(data.main.feels_like)}°F`;
+            
+            // Other details
+            document.getElementById('humidity').textContent = data.main.humidity;
+            
+            // Wind speed and direction
+            document.getElementById('windSpeed').textContent = Math.round(data.wind.speed);
+            if (data.wind.deg) {
+                const direction = getWindDirection(data.wind.deg);
+                windDirectionIcon.style.transform = `rotate(${data.wind.deg}deg)`;
+                windDirectionIcon.title = direction;
+            }
+            
+            // Sunrise and sunset
+            const sunriseTime = new Date(data.sys.sunrise * 1000);
+            const sunsetTime = new Date(data.sys.sunset * 1000);
+            document.getElementById('sunrise').textContent = sunriseTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            document.getElementById('sunset').textContent = sunsetTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            // Visibility (convert meters to miles) and cloudiness
+            document.getElementById('visibility').textContent = ((data.visibility / 1609.34).toFixed(1)) + " miles"; // meters to miles
+            document.getElementById('cloudiness').textContent = data.clouds.all + " %";
+            
+            // Elevation data
+            const elevation = data.elevation || 0;
+            document.getElementById('elevation').textContent = `${Math.round(elevation)} ft`;
+            
+            // Data for calculations
+            document.getElementById('tempForCalc').textContent = `${data.main.temp.toFixed(1)} °F`;
+            document.getElementById('pressureForCalc').textContent = `${(data.main.pressure * 0.02953).toFixed(2)} inHg`; // hPa to inHg
+            document.getElementById('humidityForCalc').textContent = `${data.main.humidity} %`;
+        }
+
+        // Function to get cardinal direction from degrees
+        function getWindDirection(degrees) {
+            const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+            const index = Math.round((degrees % 360) / 22.5);
+            return directions[index % 16];
+        }
+
+        // Function to calculate density altitude in feet using the formula: DA = PA + [120 × (OAT - ISA)]
+        function calculateDensityAltitude(data) {
+            // Get current conditions
+            const temperatureF = data.main.temp; // °F
+            const pressureInHg = data.main.pressure * 0.02953; // Convert hPa to inHg
+            const elevation = data.elevation || 0; // ft
+            
+            // Calculate pressure altitude (PA)
+            // Standard pressure at sea level is 29.92 inHg
+            const pressureAltitude = elevation + 1000 * (29.92 - pressureInHg);
+            
+            // Calculate ISA temperature (International Standard Atmosphere)
+            // ISA temperature at given elevation: 59°F - (elevation / 1000 * 3.5°F)
+            const isaTemp = 59 - (elevation / 1000 * 3.5);
+            
+            // Calculate density altitude using the formula
+            const densityAltitude = pressureAltitude + (120 * (temperatureF - isaTemp));
+            
+            // Display the result rounded to nearest foot
+            document.getElementById('densityAltitude').textContent = `${Math.round(densityAltitude)} ft`;
+            
+            // Calculate the impact of density altitude
+            const daDiff = densityAltitude - elevation;
+            let impactText = "";
+            
+            if (daDiff < 500) {
+                impactText = "Minimal impact on vehicle performance";
+            } else if (daDiff < 1500) {
+                impactText = "Slight reduction in vehicle performance";
+            } else if (daDiff < 3000) {
+                impactText = "Noticeable reduction in vehicle performance";
+            } else {
+                impactText = "Significant reduction in vehicle performance";
+            }
+            
+            document.getElementById('densityAltitudeImpact').textContent = impactText;
+            
+            // Update the altitude indicator position (0-5,000 ft range)
+            const indicatorPosition = Math.min(Math.max(densityAltitude / 5000 * 100, 0), 100);
+            altitudeIndicator.style.left = `${indicatorPosition}%`;
+        }
+
+        // Function to calculate air density with and without water vapor
+        function calculateAirDensity(data) {
+            // Get current conditions
+            const temperatureF = data.main.temp; // °F
+            const temperatureC = (temperatureF - 32) * 5/9; // Convert to °C
+            const temperatureK = temperatureC + 273.15; // Convert to Kelvin
+            const pressureHPa = data.main.pressure; // hPa
+            const relativeHumidity = data.main.humidity / 100; // Convert % to fraction
+            
+            // Constants
+            const Rd = 287.05; // Gas constant for dry air (J/(kg·K))
+            const Rv = 461.495; // Gas constant for water vapor (J/(kg·K))
+            const standardAirDensity = 1.225; // kg/m³ at 15°C, 1013.25 hPa, 0% humidity
+            
+            // Calculate saturation vapor pressure (Pws) using the Magnus formula
+            const Pws = 6.116441 * Math.pow(10, (7.591386 * temperatureC) / (temperatureC + 240.7263));
+            
+            // Calculate partial pressure of water vapor (Pw)
+            const Pw = relativeHumidity * Pws;
+            
+            // Calculate partial pressure of dry air (Pd)
+            const Pd = pressureHPa - Pw;
+            
+            // Calculate air density without water vapor (dry air)
+            const dryAirDensity = (Pd * 100) / (Rd * temperatureK); // Convert hPa to Pa
+            
+            // Calculate air density with water vapor (humid air)
+            const humidAirDensity = ((Pd * 100) / (Rd * temperatureK)) + ((Pw * 100) / (Rv * temperatureK));
+            
+            // Calculate relative density (% of standard)
+            const dryRelativeDensity = (dryAirDensity / standardAirDensity) * 100;
+            const humidRelativeDensity = (humidAirDensity / standardAirDensity) * 100;
+            
+            // Display results
+            document.getElementById('dryAirDensity').textContent = dryAirDensity.toFixed(4) + ' kg/m³';
+            document.getElementById('dryRelativeDensity').textContent = dryRelativeDensity.toFixed(1) + ' %';
+            document.getElementById('humidAirDensity').textContent = humidAirDensity.toFixed(4) + ' kg/m³';
+            document.getElementById('humidRelativeDensity').textContent = humidRelativeDensity.toFixed(1) + ' %';
+            
+            // Update air density indicators (range 0.9 to 1.3 kg/m³)
+            const dryIndicatorPos = ((dryAirDensity - 0.9) / 0.4) * 100;
+            const humidIndicatorPos = ((humidAirDensity - 0.9) / 0.4) * 100;
+            
+            document.getElementById('dryAirDensityIndicator').style.left = `${Math.min(Math.max(dryIndicatorPos, 0), 100)}%`;
+            document.getElementById('humidAirDensityIndicator').style.left = `${Math.min(Math.max(humidIndicatorPos, 0), 100)}%`;
+        }
+
+        // Event listeners
+        searchBtn.addEventListener('click', function() {
+            const location = locationInput.value.trim();
+            if (location) {
+                fetchWeatherData(location);
+            } else {
+                errorMessage.textContent = 'Please enter a city, zip code, or coordinates';
+                error.classList.remove('hidden');
+            }
+        });
+
+        trackSearchBtnIcon.addEventListener('click', function() {
+            const searchTerm = trackInput.value.trim();
+            if (searchTerm) {
                 const matches = dragStrips.filter(track => 
                     track.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                     track.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
                     track.state.toLowerCase().includes(searchTerm.toLowerCase())
                 );
-
-                displayTrackSuggestions(matches, searchTerm);
-            }
-
-            // Function to display suggestions (cities)
-            function displaySuggestions(cities, searchTerm) {
-                autocompleteList.innerHTML = '';
-                
-                if (cities.length === 0) {
-                    autocompleteList.classList.add('hidden');
-                    return;
-                }
-
-                // Add cities
-                cities.forEach(city => {
-                    const item = document.createElement('div');
-                    let displayText = city.name;
-                    if (city.state) displayText += `, ${city.state}`;
-                    if (city.country) displayText += `, ${city.country}`;
-                    
-                    // Highlight matching part
-                    const regex = new RegExp(searchTerm, 'gi');
-                    const highlightedText = displayText.replace(regex, match => `<strong>${match}</strong>`);
-                    
-                    item.innerHTML = `<i class="fas fa-city mr-2"></i>${highlightedText}`;
-                    item.addEventListener('click', function() {
-                        locationInput.value = `${city.name}, ${city.country}`;
-                        autocompleteList.classList.add('hidden');
-                        fetchWeatherData(`${city.name}, ${city.country}`);
-                    });
-                    autocompleteList.appendChild(item);
-                });
-
-                autocompleteList.classList.remove('hidden');
-            }
-
-            // Function to display track suggestions
-            function displayTrackSuggestions(tracks, searchTerm) {
-                trackAutocompleteList.innerHTML = '';
-                
-                if (tracks.length === 0) {
-                    trackAutocompleteList.classList.add('hidden');
-                    return;
-                }
-
-                // Add tracks
-                tracks.forEach(track => {
-                    const item = document.createElement('div');
-                    let displayText = `${track.name} (${track.city}, ${track.state})`;
-                    
-                    // Highlight matching part
-                    const regex = new RegExp(searchTerm, 'gi');
-                    const highlightedText = displayText.replace(regex, match => `<strong>${match}</strong>`);
-                    
-                    item.innerHTML = `<i class="fas fa-flag-checkered mr-2"></i>${highlightedText}`;
-                    item.addEventListener('click', function() {
-                        trackInput.value = track.name;
-                        trackAutocompleteList.classList.add('hidden');
-                        fetchWeatherForTrack(track);
-                    });
-                    trackAutocompleteList.appendChild(item);
-                });
-
-                trackAutocompleteList.classList.remove('hidden');
-            }
-
-            // Event listener for track input changes with debounce
-            trackInput.addEventListener('input', function() {
-                const searchTerm = this.value.trim();
-                
-                clearTimeout(autocompleteTimeout);
-                
-                if (searchTerm !== lastSearchTerm && searchTerm.length >= 2) {
-                    autocompleteTimeout = setTimeout(() => {
-                        fetchTrackSuggestions(searchTerm);
-                        lastSearchTerm = searchTerm;
-                    }, 300);
-                } else if (searchTerm.length < 2) {
-                    trackAutocompleteList.classList.add('hidden');
-                }
-            });
-
-            // Keyboard navigation for track autocomplete
-            trackInput.addEventListener('keydown', function(e) {
-                const items = trackAutocompleteList.querySelectorAll('div');
-                
-                if (e.keyCode === 40) { // Down arrow
-                    currentFocus++;
-                    setActive(items);
-                } else if (e.keyCode === 38) { // Up arrow
-                    currentFocus--;
-                    setActive(items);
-                } else if (e.keyCode === 13) { // Enter
-                    e.preventDefault();
-                    if (currentFocus > -1) {
-                        if (items) items[currentFocus].click();
-                    } else {
-                        const searchTerm = trackInput.value.trim();
-                        if (searchTerm) {
-                            const matches = dragStrips.filter(track => 
-                                track.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                                track.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                track.state.toLowerCase().includes(searchTerm.toLowerCase())
-                            );
-                            if (matches.length > 0) {
-                                fetchWeatherForTrack(matches[0]);
-                            } else {
-                                errorMessage.textContent = 'Track not found. Please try another name.';
-                                error.classList.remove('hidden');
-                            }
-                        }
-                    }
-                }
-            });
-
-            // Event listener for input changes with debounce
-            locationInput.addEventListener('input', function() {
-                const searchTerm = this.value.trim();
-                
-                clearTimeout(autocompleteTimeout);
-                
-                if (searchTerm !== lastSearchTerm && searchTerm.length >= 2) {
-                    autocompleteTimeout = setTimeout(() => {
-                        fetchSuggestions(searchTerm);
-                        lastSearchTerm = searchTerm;
-                    }, 300);
-                } else if (searchTerm.length < 2) {
-                    autocompleteList.classList.add('hidden');
-                }
-            });
-
-            // Keyboard navigation for autocomplete
-            locationInput.addEventListener('keydown', function(e) {
-                const items = autocompleteList.querySelectorAll('div');
-                
-                if (e.keyCode === 40) { // Down arrow
-                    currentFocus++;
-                    setActive(items);
-                } else if (e.keyCode === 38) { // Up arrow
-                    currentFocus--;
-                    setActive(items);
-                } else if (e.keyCode === 13) { // Enter
-                    e.preventDefault();
-                    if (currentFocus > -1) {
-                        if (items) items[currentFocus].click();
-                    } else {
-                        const location = locationInput.value.trim();
-                        if (location) {
-                            fetchWeatherData(location);
-                        }
-                    }
-                }
-            });
-
-            function setActive(items) {
-                if (!items) return;
-                
-                removeActive(items);
-                if (currentFocus >= items.length) currentFocus = 0;
-                if (currentFocus < 0) currentFocus = (items.length - 1);
-                
-                items[currentFocus].classList.add('autocomplete-active');
-            }
-
-            function removeActive(items) {
-                items.forEach(item => {
-                    item.classList.remove('autocomplete-active');
-                });
-            }
-
-            // Close autocomplete when clicking outside
-            document.addEventListener('click', function(e) {
-                if (e.target !== locationInput && e.target !== trackInput) {
-                    autocompleteList.classList.add('hidden');
-                    trackAutocompleteList.classList.add('hidden');
-                }
-            });
-
-            // Function to fetch weather data for a track
-            async function fetchWeatherForTrack(track) {
-                loading.classList.remove('hidden');
-                error.classList.add('hidden');
-                weatherContainer.classList.add('hidden');
-                defaultState.classList.add('hidden');
-                trackAutocompleteList.classList.add('hidden');
-
-                try {
-                    // Use the track's zip code to fetch weather
-                    const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?zip=${track.zip},US&units=imperial&appid=${weatherApiKey}`);
-                    
-                    if (!response.ok) {
-                        throw new Error('Weather data not available for this track. Please try another location.');
-                    }
-
-                    const data = await response.json();
-                    
-                    // Add elevation from our track database
-                    data.elevation = track.elevation;
-                    
-                    displayWeatherData(data);
-                    calculateDensityAltitude(data);
-                    
-                    // Show track badge
-                    trackBadge.classList.remove('hidden');
-                    trackNameBadge.textContent = track.name;
-                    
-                    loading.classList.add('hidden');
-                    weatherContainer.classList.remove('hidden');
-                } catch (err) {
-                    loading.classList.add('hidden');
-                    errorMessage.textContent = err.message;
-                    error.classList.remove('hidden');
-                    defaultState.classList.remove('hidden');
-                }
-            }
-
-            // Function to fetch weather data for a location (city, zip, or coordinates)
-            async function fetchWeatherData(location) {
-                loading.classList.remove('hidden');
-                error.classList.add('hidden');
-                weatherContainer.classList.add('hidden');
-                defaultState.classList.add('hidden');
-                autocompleteList.classList.add('hidden');
-                trackBadge.classList.add('hidden');
-
-                try {
-                    let url;
-                    let coords;
-                    
-                    // Check if it's coordinates
-                    if (/^-?\d{1,3}(?:\.\d+)?\s*,\s*-?\d{1,3}(?:\.\d+)?$/.test(location)) {
-                        const [lat, lon] = location.split(',').map(coord => coord.trim());
-                        coords = { lat, lon };
-                        url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=imperial&appid=${weatherApiKey}`;
-                    } 
-                    // Check if it's a zip code (US only)
-                    else if (/^\d{5}(?:[-\s]\d{4})?$/.test(location)) {
-                        url = `https://api.openweathermap.org/data/2.5/weather?zip=${location},US&units=imperial&appid=${weatherApiKey}`;
-                    } 
-                    // Otherwise treat as city name
-                    else {
-                        url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(location)}&units=imperial&appid=${weatherApiKey}`;
-                    }
-
-                    let response = await fetch(url);
-                    
-                    if (!response.ok) {
-                        // Try with encoded location if first attempt fails
-                        const encodedLocation = encodeURIComponent(location);
-                        response = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${encodedLocation}&units=imperial&appid=${weatherApiKey}`);
-                        
-                        if (!response.ok) {
-                            throw new Error('Location not found. Please try another city, zip code, or coordinates.');
-                        }
-                    }
-
-                    const data = await response.json();
-                    
-                    // If we don't have coords yet, get them from the response
-                    if (!coords) {
-                        coords = {
-                            lat: data.coord.lat,
-                            lon: data.coord.lon
-                        };
-                    }
-                    
-                    // Get elevation data
-                    const elevationData = await getElevation(coords.lat, coords.lon);
-                    data.elevation = elevationData;
-                    
-                    displayWeatherData(data);
-                    calculateDensityAltitude(data);
-                    
-                    loading.classList.add('hidden');
-                    weatherContainer.classList.remove('hidden');
-                } catch (err) {
-                    loading.classList.add('hidden');
-                    errorMessage.textContent = err.message;
-                    error.classList.remove('hidden');
-                    defaultState.classList.remove('hidden');
-                }
-            }
-            
-            // Function to get elevation data
-            async function getElevation(lat, lon) {
-                try {
-                    const response = await fetch(`https://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${lon}&limit=1&appid=${weatherApiKey}`);
-                    
-                    if (response.ok) {
-                        const data = await response.json();
-                        if (data.length > 0 && data[0].hasOwnProperty('elevation')) {
-                            // Convert meters to feet
-                            return data[0].elevation * 3.28084;
-                        }
-                    }
-                    
-                    // Fallback to another elevation API if OpenWeatherMap doesn't provide it
-                    const fallbackResponse = await fetch(`https://api.open-elevation.com/api/v1/lookup?locations=${lat},${lon}`);
-                    if (fallbackResponse.ok) {
-                        const fallbackData = await fallbackResponse.json();
-                        if (fallbackData.results && fallbackData.results.length > 0) {
-                            // Convert meters to feet
-                            return fallbackData.results[0].elevation * 3.28084;
-                        }
-                    }
-                    
-                    // If no elevation data available, return 0
-                    return 0;
-                } catch (err) {
-                    console.error('Error fetching elevation:', err);
-                    return 0;
-                }
-            }
-
-            // Function to display weather data (imperial units)
-            function displayWeatherData(data) {
-                // Current date
-                const now = new Date();
-                const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-                document.getElementById('currentDate').textContent = now.toLocaleDateString('en-US', options);
-                
-                // Location
-                document.getElementById('cityName').textContent = `${data.name}, ${data.sys.country}`;
-                
-                // Weather description and icon
-                document.getElementById('weatherDescription').textContent = data.weather[0].description;
-                const iconCode = data.weather[0].icon;
-                document.getElementById('weatherIcon').src = `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
-                document.getElementById('weatherIcon').alt = data.weather[0].description;
-                
-                // Temperature (Fahrenheit)
-                document.getElementById('currentTemp').textContent = `${Math.round(data.main.temp)}°F`;
-                document.getElementById('feelsLike').textContent = `${Math.round(data.main.feels_like)}°F`;
-                
-                // Other details
-                document.getElementById('humidity').textContent = data.main.humidity;
-                
-                // Wind speed and direction
-                document.getElementById('windSpeed').textContent = Math.round(data.wind.speed);
-                if (data.wind.deg) {
-                    const direction = getWindDirection(data.wind.deg);
-                    windDirectionIcon.style.transform = `rotate(${data.wind.deg}deg)`;
-                    windDirectionIcon.title = direction;
-                }
-                
-                // Sunrise and sunset
-                const sunriseTime = new Date(data.sys.sunrise * 1000);
-                const sunsetTime = new Date(data.sys.sunset * 1000);
-                document.getElementById('sunrise').textContent = sunriseTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                document.getElementById('sunset').textContent = sunsetTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                
-                // Visibility (convert meters to miles) and cloudiness
-                document.getElementById('visibility').textContent = ((data.visibility / 1609.34).toFixed(1)) + " miles"; // meters to miles
-                document.getElementById('cloudiness').textContent = data.clouds.all + " %";
-                
-                // Elevation data
-                const elevation = data.elevation || 0;
-                document.getElementById('elevation').textContent = `${Math.round(elevation)} ft`;
-                
-                // Data for calculations
-                document.getElementById('tempForCalc').textContent = `${data.main.temp.toFixed(1)} °F`;
-                document.getElementById('pressureForCalc').textContent = `${(data.main.pressure * 0.02953).toFixed(2)} inHg`; // hPa to inHg
-                document.getElementById('humidityForCalc').textContent = `${data.main.humidity} %`;
-            }
-
-            // Function to get cardinal direction from degrees
-            function getWindDirection(degrees) {
-                const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
-                const index = Math.round((degrees % 360) / 22.5);
-                return directions[index % 16];
-            }
-
-            // Function to calculate density altitude in feet using the provided formula
-            function calculateDensityAltitude(data) {
-                // Get current conditions
-                const temperatureF = data.main.temp; // °F
-                const pressureInHg = data.main.pressure * 0.02953; // Convert hPa to inHg
-                const humidity = data.main.humidity; // %
-                const elevation = data.elevation || 0; // ft
-                
-                // Convert temperature to Kelvin
-                const temperatureK = (temperatureF - 32) * 5/9 + 273.15;
-                
-                // Calculate saturation vapor pressure (Pascals)
-                const es = 6.112 * Math.exp((17.67 * (temperatureK - 273.15)) / (temperatureK - 29.65)) * 100;
-                
-                // Calculate actual vapor pressure (Pascals)
-                const ea = (humidity / 100) * es;
-                
-                // Calculate air density (kg/m³)
-                // Using the ideal gas law adjusted for humidity
-                const R = 287.05; // Specific gas constant for dry air (J/(kg·K))
-                const Rv = 461.495; // Specific gas constant for water vapor (J/(kg·K))
-                const pressurePa = pressureInHg * 3386.39; // Convert inHg to Pascals
-                
-                const rho = (pressurePa - ea) / (R * temperatureK) + ea / (Rv * temperatureK);
-                
-                // Calculate density altitude using the provided formula: H = 44.3308 - 42.2665 × ρ^0.234969
-                // Where ρ is air density in kg/m³ and H is in kilometers
-                const densityAltitudeKm = 44.3308 - 42.2665 * Math.pow(rho, 0.234969);
-                
-                // Convert to feet
-                const densityAltitudeFt = densityAltitudeKm * 3280.84;
-                
-                // Display the result rounded to nearest foot
-                document.getElementById('densityAltitude').textContent = `${Math.round(densityAltitudeFt)} ft`;
-                
-                // Calculate the impact of density altitude
-                let impactText = "";
-                const daDiff = densityAltitudeFt - elevation;
-                
-                if (daDiff < 500) {
-                    impactText = "Minimal impact on vehicle performance";
-                } else if (daDiff < 1500) {
-                    impactText = "Slight reduction in vehicle performance";
-                } else if (daDiff < 3000) {
-                    impactText = "Noticeable reduction in vehicle performance";
+                if (matches.length > 0) {
+                    fetchWeatherForTrack(matches[0]);
                 } else {
-                    impactText = "Significant reduction in vehicle performance";
+                    errorMessage.textContent = 'Track not found. Please try another name.';
+                    error.classList.remove('hidden');
                 }
-                
-                document.getElementById('densityAltitudeImpact').textContent = impactText;
-                
-                // Update the altitude indicator position (0-5,000 ft range)
-                const indicatorPosition = Math.min(Math.max(densityAltitudeFt / 5000 * 100, 0), 100);
-                altitudeIndicator.style.left = `${indicatorPosition}%`;
+            } else {
+                errorMessage.textContent = 'Please enter a track name';
+                error.classList.remove('hidden');
             }
+        });
 
-            // Event listeners
-            searchBtn.addEventListener('click', function() {
+        locationInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
                 const location = locationInput.value.trim();
                 if (location) {
                     fetchWeatherData(location);
                 } else {
                     errorMessage.textContent = 'Please enter a city, zip code, or coordinates';
-                    error.classList.remove('hidden');
                 }
-            });
-
-            trackSearchBtnIcon.addEventListener('click', function() {
-                const searchTerm = trackInput.value.trim();
-                if (searchTerm) {
-                    const matches = dragStrips.filter(track => 
-                        track.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                        track.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        track.state.toLowerCase().includes(searchTerm.toLowerCase())
-                    );
-                    if (matches.length > 0) {
-                        fetchWeatherForTrack(matches[0]);
-                    } else {
-                        errorMessage.textContent = 'Track not found. Please try another name.';
-                        error.classList.remove('hidden');
-                    }
-                } else {
-                    errorMessage.textContent = 'Please enter a track name';
-                    error.classList.remove('hidden');
-                }
-            });
-
-            locationInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    const location = locationInput.value.trim();
-                    if (location) {
-                        fetchWeatherData(location);
-                    } else {
-                        errorMessage.textContent = 'Please enter a city, zip code, or coordinates';
-                    }
-                }
-            });
+            }
         });
-    </script>
-<p style="border-radius: 8px; text-align: center; font-size: 12px; color: #fff; margin-top: 16px;position: fixed; left: 8px; bottom: 8px; z-index: 10; background: rgba(0, 0, 0, 0.8); padding: 4px 8px;">Made with <img alt="DeepSite Logo" src="https://enzostvs-deepsite.hf.space/logo.svg" style="width: 16px; height: 16px; vertical-align: middle;display:inline-block;margin-right:3px;filter:brightness(0) invert(1);"/><a href="https://enzostvs-deepsite.hf.space" style="color: #fff;text-decoration: underline;" target="_blank">DeepSite</a> - 🧬 <a href="https://enzostvs-deepsite.hf.space?remix=BigChiefRick/racer-air2" style="color: #fff;text-decoration: underline;" target="_blank">Remix</a></p><p style="border-radius: 8px; text-align: center; font-size: 12px; color: #fff; margin-top: 16px;position: fixed; left: 8px; bottom: 8px; z-index: 10; background: rgba(0, 0, 0, 0.8); padding: 4px 8px;">Made with <img src="https://enzostvs-deepsite.hf.space/logo.svg" alt="DeepSite Logo" style="width: 16px; height: 16px; vertical-align: middle;display:inline-block;margin-right:3px;filter:brightness(0) invert(1);"><a href="https://enzostvs-deepsite.hf.space" style="color: #fff;text-decoration: underline;" target="_blank" >DeepSite</a> - 🧬 <a href="https://enzostvs-deepsite.hf.space?remix=BigChiefRick/racer-air" style="color: #fff;text-decoration: underline;" target="_blank" >Remix</a></p></body>
+    });
+</script>
+</body>
 </html>
